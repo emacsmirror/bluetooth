@@ -349,9 +349,7 @@ This function only uses the first adapter reported by Bluez."
       (concat "[" info "] "))))
 
 (defun bluetooth--cleanup ()
-  "Clean up."
-  (setq mode-line-misc-info (cl-remove bluetooth--mode-info
-				       mode-line-misc-info))
+  "Clean up when mode buffer is killed."
   (bluetooth--unregister-agent))
 
 ;;; This command is the main entry point.  It is meant to be called by
@@ -497,10 +495,11 @@ This function only uses the first adapter reported by Bluez."
 
 (defun bluetooth--unregister-agent ()
   "Unregister the pairing agent."
-  (mapc #'dbus-unregister-object bluetooth--method-objects)
-  (dbus-call-method :system bluetooth--service bluetooth--root
-		    bluetooth--agent-mngr-intf "UnregisterAgent"
-		    :object-path bluetooth--own-path))
+  (ignore-errors
+    (dbus-call-method :system bluetooth--service bluetooth--root
+		      bluetooth--agent-mngr-intf "UnregisterAgent"
+		      :object-path bluetooth--own-path)
+    (mapc #'dbus-unregister-object bluetooth--method-objects)))
 
 (provide 'bluetooth)
 
