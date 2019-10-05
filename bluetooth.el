@@ -372,8 +372,8 @@ This function only uses the first adapter reported by Bluez."
     (bluetooth-mode)
     (bluetooth--register-agent)
     (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-    (setq mode-line-misc-info (cl-pushnew bluetooth--mode-info
-					  mode-line-misc-info))
+    (set (make-local-variable 'mode-line-misc-info)
+	 (cl-pushnew bluetooth--mode-info mode-line-misc-info))
     (tabulated-list-print)))
 
 ;;; Bluetooth pairing agent code
