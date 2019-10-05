@@ -378,6 +378,9 @@ This function only uses the first adapter reported by Bluez."
 
 ;;; Bluetooth pairing agent code
 
+(defun bluetooth--release ()
+  "Agent release method.")
+
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
   (declare (indent defun))
