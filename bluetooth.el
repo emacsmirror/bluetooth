@@ -341,8 +341,8 @@ This function only uses the first adapter reported by Bluez."
 						(car adapters))
 					"org.bluez.Adapter1"))
 	 (info (mapconcat #'identity
-			  (-keep #'(lambda (x) (if (cdr (assoc (first x) resp))
-					      (second x) (third x)))
+			  (-keep #'(lambda (x) (if (cdr (assoc (car x) resp))
+					      (cadr x) (caddr x)))
 				 bluetooth--mode-state)
 			  ",")))
     (unless (string-blank-p info)
