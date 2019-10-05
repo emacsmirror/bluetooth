@@ -44,8 +44,8 @@
 (require 'let-alist)
 (require 'dash)
 
-(defconst bluetooth-buffer-name "*Bluetooth*" "Name of the buffer in
-which to list bluetooth devices.")
+(defconst bluetooth-buffer-name "*Bluetooth*"
+  "Name of the buffer in which to list bluetooth devices.")
 
 (defconst bluetooth--mode-name "Bluetooth" "Pretty print mode name.")
 
@@ -70,16 +70,18 @@ which to list bluetooth devices.")
 (defconst bluetooth--root "/org/bluez" "D-Bus path root for Bluez.")
 
 ;;; our path name for the pairing agent
-(defvar bluetooth--own-path (concat dbus-path-emacs "/bluetooth"))
+(defvar bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
+  "D-Bus object path for the pairing agent.")
 
 ;;; the interface name for the pairing agent
-(defvar bluetooth--own-intf (concat dbus-interface-emacs ".bluetooth"))
+(defvar bluetooth--own-intf (concat dbus-interface-emacs ".bluetooth")
+  "D-Bus interface name for the pairing agent.")
 
 (defconst bluetooth--agent-mngr-intf "org.bluez.AgentManager1"
-  "D-Bus interface name for the agent manager")
+  "D-Bus interface name for the agent manager.")
 
 (defconst bluetooth--agent-intf "org.bluez.Agent1"
-  "D-Bus interface name for the agent")
+  "D-Bus interface name for the agent.")
 
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
 
@@ -260,7 +262,7 @@ devices, as well as setting properties."
 ;;; This function compiles a list of device information in the
 ;;; format needed by `tabulated-list-print'.
 (defun bluetooth--compile-list-entries (device-info)
-  "Compile list entries based on previously gathered device info."
+  "Compile list entries based on previously gathered DEVICE-INFO."
   (mapcar #'(lambda (dev)
 	      (list (car dev)
 		    (cl-map 'vector #'(lambda (key) (bluetooth--dev-state key dev))
@@ -270,7 +272,7 @@ devices, as well as setting properties."
 ;;; This function calls FUNCTION with ARGS given the device-id DEV-ID and
 ;;; Bluez API.  This is used on D-Bus functions.
 (defun bluetooth--call-method (dev-id api function &rest args)
-  "For DEV-ID, invoke D-Bus FUNCTION, passing ARGS."
+  "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((path (mapconcat #'(lambda (f) (funcall f dev-id))
 			 (plist-get (plist-get bluetooth--api-info api) :path)
 			 "/"))
@@ -284,7 +286,7 @@ devices, as well as setting properties."
 
 ;;; Invoke a D-Bus method with or without parameters.
 (defun bluetooth--dbus-method (method api &rest args)
-  "Invoke METHOD on D-Bus API."
+  "Invoke METHOD on D-Bus API with ARGS."
   (apply #'bluetooth--call-method (tabulated-list-get-id) api
 	 #'dbus-call-method-asynchronously method
 	 #'(lambda () (tabulated-list-print t)) :timeout bluetooth--timeout args))
@@ -458,6 +460,7 @@ This function only uses the first adapter reported by Bluez."
   :ignore)
 
 (defun bluetooth--cancel ()
+  "Cancel a pairing process."
   (keyboard-quit)
   (message "Pairing canceled"))
 

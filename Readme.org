@@ -19,6 +19,6 @@
    #+begin_src emacs-lisp
      (require 'bluetooth)
    #+end_src
-   in ~init.el~ and call ~list-bluetooth-devices~.  No configuration is
-   necessary or possible.  Use ~describe-mode~ (usually "C-h m") to get a list
+   in ~init.el~ and call ~M-x list-bluetooth-devices~.  No configuration is
+   necessary or possible.  Use ~M-x describe-mode~ (usually ~C-h m~) to get a list
    of key bindings.
