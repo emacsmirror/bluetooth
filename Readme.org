@@ -1,0 +1,24 @@
+* Emacs Bluetooth Mode
+
+  This package provides a simple Bluetooth mode that can be used to manage
+  Bluetooth devices on GNU/Linux using GNU Emacs.
+
+  Implemented features are:
+  - (un-)pairing devices
+  - (dis-)connecting
+  - discovery mode
+  - setting device properties (alias, blocked, trusted)
+  - setting adapter properties (powered, discoverable, pairable)
+
+  The implementation is based on the Bluez DBus interface (see
+  [[https://www.bluez.org]]).
+
+** Usage
+  
+   To use it, put ~bluetooth.el~ somewhere in your load path, include
+   #+begin_src emacs-lisp
+     (require 'bluetooth)
+   #+end_src
+   in ~init.el~ and call ~list-bluetooth-devices~.  No configuration is
+   necessary or possible.  Use ~describe-mode~ (usually "C-h m") to get a list
+   of key bindings.
