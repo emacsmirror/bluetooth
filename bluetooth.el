@@ -8,7 +8,7 @@
 ;; Package-Version:
 ;; Package-Requires: ((dash) (let-alist) (dbus))
 ;; Keywords: hardware
-;; Homepage:
+;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
 ;; This file is NOT part of GNU Emacs
 
