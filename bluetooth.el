@@ -270,6 +270,16 @@ devices, as well as setting properties."
 			    (mapcar #'car bluetooth--list-format))))
 	  device-info))
 
+;;; Build up the index for Imenu.  This function is used as
+;;; `imenu-create-index-function'.
+(defun bluetooth--create-imenu-index ()
+  "Create the index for Imenu."
+  (goto-char (point-min))
+  (cl-loop for (pos entry) = (list (point) (tabulated-list-get-entry))
+	   while entry
+	   do (forward-line 1)
+	   collect (cons (elt entry 0) pos)))
+
 ;;; This function calls FUNCTION with ARGS given the device-id DEV-ID and
 ;;; Bluez API.  This is used on D-Bus functions.
 (defun bluetooth--call-method (dev-id api function &rest args)
@@ -375,7 +385,8 @@ This function only uses the first adapter reported by Bluez."
        (bluetooth--register-agent)
        (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
        (setq-local mode-line-misc-info
-		   (cl-pushnew bluetooth--mode-info mode-line-misc-info)))
+		   (cl-pushnew bluetooth--mode-info mode-line-misc-info))
+       (setq imenu-create-index-function #'bluetooth--create-imenu-index))
      (tabulated-list-print))))
 
 ;;; Bluetooth pairing agent code
