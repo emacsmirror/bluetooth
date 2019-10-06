@@ -57,10 +57,10 @@
 ;;; the second is the displayed string if the property is non-nil and
 ;;; the third is the displayed string if the property is nil.  If a
 ;;; display element is nil, nothing will be displayed for this property.
-(defvar bluetooth--mode-state '(("Powered" nil "off")
-				("Discoverable" "discoverable" nil)
-				("Pairable" "pairable" nil)
-				("Discovering" "scan" nil))
+(defconst bluetooth--mode-state '(("Powered" nil "off")
+				  ("Discoverable" "discoverable" nil)
+				  ("Pairable" "pairable" nil)
+				  ("Discovering" "scan" nil))
   "Mode line adapter state information.")
 
 ;;; Bluez service name as defined by the Bluez API
@@ -70,11 +70,11 @@
 (defconst bluetooth--root "/org/bluez" "D-Bus path root for Bluez.")
 
 ;;; our path name for the pairing agent
-(defvar bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
+(defconst bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
 
 ;;; the interface name for the pairing agent
-(defvar bluetooth--own-intf (concat dbus-interface-emacs ".bluetooth")
+(defconst bluetooth--own-intf (concat dbus-interface-emacs ".bluetooth")
   "D-Bus interface name for the pairing agent.")
 
 (defconst bluetooth--agent-mngr-intf "org.bluez.AgentManager1"
@@ -95,7 +95,7 @@
 ;;;
 ;;; The path-spec is a list of functions, defined below, that
 ;;; return the designated constituents of the D-Bus path.
-(defvar bluetooth--api-info '(:device
+(defconst bluetooth--api-info '(:device
 			      (:path
 			       (bluetooth--adapter bluetooth--device)
 			       :interface "org.bluez.Device1")
