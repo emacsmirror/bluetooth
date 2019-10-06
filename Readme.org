@@ -9,6 +9,7 @@
   - discovery mode
   - setting device properties (alias, blocked, trusted)
   - setting adapter properties (powered, discoverable, pairable)
+  - Imenu integration
 
   The implementation is based on the Bluez DBus interface (see
   [[https://www.bluez.org]]).
