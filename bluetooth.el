@@ -365,15 +365,18 @@ This function only uses the first adapter reported by Bluez."
 (defun list-bluetooth-devices ()
   "Display a list of Bluetooth devices that are available."
   (interactive)
+  ;; make sure D-Bus is (made) available
   (dbus-ping :system bluetooth--service bluetooth--timeout)
-  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-    (erase-buffer)
-    (bluetooth-mode)
-    (bluetooth--register-agent)
-    (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-    (set (make-local-variable 'mode-line-misc-info)
-	 (cl-pushnew bluetooth--mode-info mode-line-misc-info))
-    (tabulated-list-print)))
+  (let ((buffer-exists (get-buffer bluetooth-buffer-name)))
+   (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
+     (unless buffer-exists
+       (erase-buffer)
+       (bluetooth-mode)
+       (bluetooth--register-agent)
+       (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
+       (setq-local mode-line-misc-info
+		   (cl-pushnew bluetooth--mode-info mode-line-misc-info)))
+     (tabulated-list-print))))
 
 ;;; Bluetooth pairing agent code
 
