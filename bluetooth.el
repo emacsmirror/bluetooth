@@ -97,13 +97,13 @@
 ;;; The path-spec is a list of functions, defined below, that
 ;;; return the designated constituents of the D-Bus path.
 (defconst bluetooth--api-info '(:device
-			      (:path
-			       (bluetooth--adapter bluetooth--device)
-			       :interface "org.bluez.Device1")
-			      :adapter
-			      (:path
-			       (bluetooth--adapter)
-			       :interface "org.bluez.Adapter1"))
+				(:path
+				 (bluetooth--adapter bluetooth--device)
+				 :interface "org.bluez.Device1")
+				:adapter
+				(:path
+				 (bluetooth--adapter)
+				 :interface "org.bluez.Adapter1"))
   "Bluez D-Bus API information about paths and interfaces.")
 
 ;;; The following functions provide the constituents of the path
@@ -219,9 +219,9 @@ devices, as well as setting properties."
 ;;; by a list of devices known to this adapter.
 (defun bluetooth--get-devices ()
   "Return a list of bluetooth adapters and devices connected to them."
-  (mapcar #'(lambda (a)
-	      (list a (dbus-introspect-get-node-names
-		       :system bluetooth--service (concat bluetooth--root "/" a))))
+  (mapcar (lambda (a)
+	    (list a (dbus-introspect-get-node-names
+		     :system bluetooth--service (concat bluetooth--root "/" a))))
 	  (dbus-introspect-get-node-names
 	   :system bluetooth--service bluetooth--root)))
 
@@ -243,14 +243,14 @@ devices, as well as setting properties."
 (defun bluetooth--get-device-info (devices)
   "Return a list with information about DEVICES."
   (mapcan
-   #'(lambda (devlist)
-       (cl-loop for dev in (cadr devlist)
-		for path = (mapconcat #'identity
-				      (list bluetooth--root (car devlist) dev)
-				      "/")
-		collect (cons dev (list (dbus-get-all-properties
-					 :system bluetooth--service path
-					 "org.bluez.Device1")))))
+   (lambda (devlist)
+     (cl-loop for dev in (cadr devlist)
+	      for path = (mapconcat #'identity
+				    (list bluetooth--root (car devlist) dev)
+				    "/")
+	      collect (cons dev (list (dbus-get-all-properties
+				       :system bluetooth--service path
+				       "org.bluez.Device1")))))
    devices))
 
 (defun bluetooth--dev-state (key device)
@@ -264,10 +264,10 @@ devices, as well as setting properties."
 ;;; format needed by `tabulated-list-print'.
 (defun bluetooth--compile-list-entries (device-info)
   "Compile list entries based on previously gathered DEVICE-INFO."
-  (mapcar #'(lambda (dev)
-	      (list (car dev)
-		    (cl-map 'vector #'(lambda (key) (bluetooth--dev-state key dev))
-			    (mapcar #'car bluetooth--list-format))))
+  (mapcar (lambda (dev)
+	    (list (car dev)
+		  (cl-map 'vector (lambda (key) (bluetooth--dev-state key dev))
+			  (mapcar #'car bluetooth--list-format))))
 	  device-info))
 
 ;;; Build up the index for Imenu.  This function is used as
@@ -284,12 +284,12 @@ devices, as well as setting properties."
 ;;; Bluez API.  This is used on D-Bus functions.
 (defun bluetooth--call-method (dev-id api function &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
-  (let ((path (mapconcat #'(lambda (f) (funcall f dev-id))
+  (let ((path (mapconcat (lambda (f) (funcall f dev-id))
 			 (plist-get (plist-get bluetooth--api-info api) :path)
 			 "/"))
 	(interface (plist-get (plist-get bluetooth--api-info api) :interface)))
     (apply function :system bluetooth--service path interface
-	   (mapcar #'(lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
+	   (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
 		   args))))
 
 ;;; The following functions are the workers for the commands.
@@ -300,7 +300,7 @@ devices, as well as setting properties."
   "Invoke METHOD on D-Bus API with ARGS."
   (apply #'bluetooth--call-method (tabulated-list-get-id) api
 	 #'dbus-call-method-asynchronously method
-	 #'(lambda () (tabulated-list-print t)) :timeout bluetooth--timeout args))
+	 (lambda () (tabulated-list-print t)) :timeout bluetooth--timeout args))
 
 ;;; Toggle a property.
 (defun bluetooth--dbus-toggle (property api)
@@ -335,7 +335,7 @@ devices, as well as setting properties."
 		       ,@ .run))
 	   (.toggle `(lambda () (interactive)
 		       (let ((value (bluetooth--dbus-toggle , .toggle , .api)))
-			,@ .run)))
+			 ,@ .run)))
 	   (.set `(lambda (arg) (interactive ,(concat "M" .query))
 		    (bluetooth--dbus-set , .set arg , .api)
 		    ,@ .run)))
@@ -352,8 +352,8 @@ This function only uses the first adapter reported by Bluez."
 						(car adapters))
 					"org.bluez.Adapter1"))
 	 (info (mapconcat #'identity
-			  (-keep #'(lambda (x) (if (cdr (assoc (car x) resp))
-					      (cadr x) (caddr x)))
+			  (-keep (lambda (x) (if (cdr (assoc (car x) resp))
+					    (cadr x) (caddr x)))
 				 bluetooth--mode-state)
 			  ",")))
     (unless (string-blank-p info)
@@ -408,8 +408,8 @@ This function only uses the first adapter reported by Bluez."
 `org.bluez.Error.Rejected' is issued if BODY evaluates to nil."
   (declare (indent defun))
   `(or (condition-case nil
-	    ,@body
-	  (quit (signal 'dbus-error '("org.bluez.Error.Canceled"))))
+	   ,@body
+	 (quit (signal 'dbus-error '("org.bluez.Error.Canceled"))))
        (signal 'dbus-error '("org.bluez.Error.Rejected"))))
 
 (defun bluetooth--request-pin-code (device)
@@ -497,7 +497,7 @@ This function only uses the first adapter reported by Bluez."
 		   for fname = (concat "bluetooth-"
 				       (replace-regexp-in-string
 					"[A-Z][a-z]+"
-					#'(lambda (x) (concat "-" (downcase x)))
+					(lambda (x) (concat "-" (downcase x)))
 					method t))
 		   collect (dbus-register-method :session dbus-service-emacs
 						 bluetooth--own-path
