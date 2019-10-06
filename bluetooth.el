@@ -3,10 +3,11 @@
 ;; Copyright (C) 2019 Raffael Stocker
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
+;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
 ;; Version: 0.1
 ;; Package-Version:
-;; Package-Requires: ((dash) (let-alist) (dbus))
+;; Package-Requires: ((dash) (cl-lib))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
