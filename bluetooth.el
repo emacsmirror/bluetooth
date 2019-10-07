@@ -499,7 +499,7 @@ This function only uses the first adapter reported by Bluez."
 					"[A-Z][a-z]+"
 					(lambda (x) (concat "-" (downcase x)))
 					method t))
-		   collect (dbus-register-method :session dbus-service-emacs
+		   collect (dbus-register-method :system dbus-service-emacs
 						 bluetooth--own-path
 						 bluetooth--agent-intf
 						 method (intern fname) t))))
