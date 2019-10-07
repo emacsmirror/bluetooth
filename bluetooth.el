@@ -179,7 +179,7 @@
 
 ;;; This function provides the list entries for the tabulated-list
 ;;; view.  It is called from `tabulated-list-print'.
-(defun bluetooth--list-entry-fcn ()
+(defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
   (setq bluetooth--device-info
 	(bluetooth--get-device-info (bluetooth--get-devices)))
@@ -205,7 +205,7 @@
 This mode allows pairing with and connecting to Bluetooth
 devices, as well as setting properties."
   (setq tabulated-list-format bluetooth--list-format
-	tabulated-list-entries #'bluetooth--list-entry-fcn
+	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1)
   (bluetooth--make-commands)
   (tabulated-list-init-header))
@@ -300,7 +300,7 @@ devices, as well as setting properties."
   "Invoke METHOD on D-Bus API with ARGS."
   (apply #'bluetooth--call-method (tabulated-list-get-id) api
 	 #'dbus-call-method-asynchronously method
-	 (lambda () (tabulated-list-print t)) :timeout bluetooth--timeout args))
+	 #'bluetooth--update-list :timeout bluetooth--timeout args))
 
 ;;; Toggle a property.
 (defun bluetooth--dbus-toggle (property api)
@@ -309,14 +309,14 @@ devices, as well as setting properties."
 	 (value (bluetooth--call-method dev-id api
 					#'dbus-get-property property)))
     (bluetooth--call-method dev-id api #'dbus-set-property property (not value))
-    (tabulated-list-print t)))
+    (bluetooth--update-list)))
 
 ;;; Set a property.
 (defun bluetooth--dbus-set (property arg api)
   "Set PROPERTY to ARG on D-Bus API."
   (bluetooth--call-method (tabulated-list-get-id)
 			  api #'dbus-set-property property arg)
-  (tabulated-list-print t))
+  (bluetooth--update-list))
 
 ;;; end of worker function definitions
 
@@ -384,8 +384,8 @@ This function only uses the first adapter reported by Bluez."
 	(bluetooth-mode)
 	(bluetooth--register-agent)
 	(add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-	(setq-local mode-line-misc-info
-		    (cl-pushnew bluetooth--mode-info mode-line-misc-info))
+	(make-local-variable 'mode-line-misc-info)
+	(cl-pushnew bluetooth--mode-info mode-line-misc-info)
 	(setq imenu-create-index-function #'bluetooth--create-imenu-index))
       (tabulated-list-print t))))
 
