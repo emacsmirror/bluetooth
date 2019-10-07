@@ -408,7 +408,7 @@ This function only uses the first adapter reported by Bluez."
 `org.bluez.Error.Rejected' is issued if BODY evaluates to nil."
   (declare (indent defun))
   `(or (condition-case nil
-	   ,@body
+	   (progn ,@body)
 	 (quit (signal 'dbus-error '("org.bluez.Error.Canceled"))))
        (signal 'dbus-error '("org.bluez.Error.Rejected"))))
 
