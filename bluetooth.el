@@ -520,8 +520,10 @@ This function only uses the first adapter reported by Bluez."
 ;;; Application layer
 
 (defconst bluetooth--service-class-uuid-alist
-  '((#x1000 . ("ServiceDiscoveryServerServiceClassID" "Bluetooth Core Specification"))
-    (#x1001 . ("BrowseGroupDescriptorServiceClassID" "Bluetooth Core Specification"))
+  '((#x1000 . ("ServiceDiscoveryServerServiceClassID"
+	       "Bluetooth Core Specification"))
+    (#x1001 . ("BrowseGroupDescriptorServiceClassID"
+	       "Bluetooth Core Specification"))
     (#x1101 . ("SerialPort" "Serial Port Profile (SPP)"))
     (#x1102 . ("LANAccessUsingPPP" "LAN Access Profile"))
     (#x1103 . ("DialupNetworking" "Dial-up Networking Profile (DUN)"))
@@ -533,15 +535,22 @@ This function only uses the first adapter reported by Bluez."
     (#x1109 . ("CordlessTelephony" "Cordless Telephony Profile (CTP)"))
     (#x110A . ("AudioSource" "Advanced Audio Distribution Profile (A2DP)"))
     (#x110B . ("AudioSink" "Advanced Audio Distribution Profile (A2DP)"))
-    (#x110C . ("A/V_RemoteControlTarget" "Audio/Video Remote Control Profile (AVRCP)"))
-    (#x110D . ("AdvancedAudioDistribution" "Advanced Audio Distribution Profile (A2DP)"))
-    (#x110E . ("A/V_RemoteControl" "Audio/Video Remote Control Profile (AVRCP)"))
-    (#x110F . ("A/V_RemoteControlController" "Audio/Video Remote Control Profile (AVRCP)"))
+    (#x110C . ("A/V_RemoteControlTarget"
+	       "Audio/Video Remote Control Profile (AVRCP)"))
+    (#x110D . ("AdvancedAudioDistribution"
+	       "Advanced Audio Distribution Profile (A2DP)"))
+    (#x110E . ("A/V_RemoteControl"
+	       "Audio/Video Remote Control Profile (AVRCP)"))
+    (#x110F . ("A/V_RemoteControlController"
+	       "Audio/Video Remote Control Profile (AVRCP)"))
     (#x1110 . ("Intercom" "Intercom Profile (ICP)"))
     (#x1111 . ("Fax" "Fax Profile (FAX)"))
     (#x1112 . ("Headset - Audio Gateway (AG)" "Headset Profile (HSP)"))
-    (#x1113 . ("WAP" "Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG "))
-    (#x1114 . ("WAP_CLIENT" "Interoperability Requirements for Bluetooth technology as a WAP, Bluetooth SIG "))
+    (#x1113 . ("WAP" (concat "Interoperability Requirements for Bluetooth"
+			     " technology as a WAP, Bluetooth SIG")))
+    (#x1114 . ("WAP_CLIENT"
+	       (concat "Interoperability Requirements for"
+		       " Bluetooth technology as a WAP, Bluetooth SIG")))
     (#x1115 . ("PANU" "Personal Area Networking Profile (PAN)"))
     (#x1116 . ("NAP" "Personal Area Networking Profile (PAN)"))
     (#x1117 . ("GN" "Personal Area Networking Profile (PAN)"))
@@ -553,12 +562,14 @@ This function only uses the first adapter reported by Bluez."
     (#x111D . ("ImagingReferencedObjects" "Basic Imaging Profile (BIP)"))
     (#x111E . ("Handsfree" "Hands-Free Profile (HFP)"))
     (#x111F . ("HandsfreeAudioGateway" "Hands-free Profile (HFP)"))
-    (#x1120 . ("DirectPrintingReferenceObjectsService" "Basic Printing Profile (BPP)"))
+    (#x1120 . ("DirectPrintingReferenceObjectsService"
+	       "Basic Printing Profile (BPP)"))
     (#x1121 . ("ReflectedUI" "Basic Printing Profile (BPP)"))
     (#x1122 . ("BasicPrinting" "Basic Printing Profile (BPP)"))
     (#x1123 . ("PrintingStatus" "Basic Printing Profile (BPP)"))
     (#x1124 . ("HumanInterfaceDeviceService" "Human Interface Device (HID)"))
-    (#x1125 . ("HardcopyCableReplacement" "Hardcopy Cable Replacement Profile (HCRP)"))
+    (#x1125 . ("HardcopyCableReplacement"
+	       "Hardcopy Cable Replacement Profile (HCRP)"))
     (#x1126 . ("HCR_Print" "Hardcopy Cable Replacement Profile (HCRP)"))
     (#x1127 . ("HCR_Scan" "Hardcopy Cable Replacement Profile (HCRP)"))
     (#x1128 . ("Common_ISDN_Access" "Common ISDN Access Profile (CIP)"))
@@ -571,14 +582,17 @@ This function only uses the first adapter reported by Bluez."
     (#x1133 . ("Message Notification Server" "Message Access Profile (MAP)"))
     (#x1134 . ("Message Access Profile" "Message Access Profile (MAP)"))
     (#x1135 . ("GNSS" "Global Navigation Satellite System Profile (GNSS)"))
-    (#x1136 . ("GNSS_Server" "Global Navigation Satellite System Profile (GNSS)"))
+    (#x1136 . ("GNSS_Server"
+	       "Global Navigation Satellite System Profile (GNSS)"))
     (#x1137​ . ("​3D Display" "​3D Synchronization Profile (3DSP)"))
     (​#x1138 . ("​3D Glasses" "​3D Synchronization Profile (3DSP)"))
     (#x1139​ . ("​3D Synchronization" "​3D Synchronization Profile (3DSP)"))
     (​#x113A . ("​MPS Profile UUID" "​Multi-Profile Specification (MPS)"))
     (​#x113B . ("​MPS SC UUID" "​Multi-Profile Specification (MPS)"))
-    (​#x113C​ . ("​CTN Access Service​" "​Calendar, Task, and Notes (CTN) Profile"))
-    (​#x113D . ("​CTN Notification Service​" "​​Calendar Tasks and Notes (CTN) Profile"))
+    (​#x113C​ . ("​CTN Access Service​"
+	       "​Calendar, Task, and Notes (CTN) Profile"))
+    (​#x113D . ("​CTN Notification Service​"
+	       "​​Calendar Tasks and Notes (CTN) Profile"))
     (​#x113E . ("​CTN Profile" "​​Calendar Tasks and Notes (CTN) Profile"))
     (#x1200 . ("PnPInformation" "Device Identification (DID)"))
     (#x1201 . ("GenericNetworking" "N/A"))
@@ -598,6 +612,80 @@ This function only uses the first adapter reported by Bluez."
     (#x1402 . ("HDP Sink" "Health Device Profile (HDP)")))
   "Bluetooth service class UUIDs.")
 
+(defconst bluetooth--gatt-service-uuid-alist
+  '((#x1800 . ("Generic Access" "org.bluetooth.service.generic_access" "GSS"))
+    (#x1811 . ("Alert Notification Service"
+	       "org.bluetooth.service.alert_notification" "GSS"))
+    (#x1815 . ("Automation IO" "org.bluetooth.service.automation_io" "GSS"))
+    (#x180F . ("Battery Service" "org.bluetooth.service.battery_service"
+	       "GSS"))
+    (#x183B . ("Binary Sensor" "GATT Service UUID" "BSS"))
+    (#x1810 . ("Blood Pressure" "org.bluetooth.service.blood_pressure" "GSS"))
+    (#x181B . ("Body Composition" "org.bluetooth.service.body_composition"
+	       "GSS"))
+    (#x181E . ("Bond Management Service"
+	       "org.bluetooth.service.bond_management" "GSS"))
+    (#x181F . ("Continuous Glucose Monitoring"
+	       "org.bluetooth.service.continuous_glucose_monitoring" "GSS"))
+    (#x1805 . ("Current Time Service" "org.bluetooth.service.current_time"
+	       "GSS"))
+    (#x1818 . ("Cycling Power" "org.bluetooth.service.cycling_power" "GSS"))
+    (#x1816 . ("Cycling Speed and Cadence"
+	       "org.bluetooth.service.cycling_speed_and_cadence" "GSS"))
+    (#x180A . ("Device Information" "org.bluetooth.service.device_information"
+	       "GSS"))
+    (#x183C . ("Emergency Configuration" "GATT Service UUID" "EMCS"))
+    (#x181A . ("Environmental Sensing"
+	       "org.bluetooth.service.environmental_sensing" "GSS"))
+    (#x1826 . ("Fitness Machine" "org.bluetooth.service.fitness_machine"
+	       "GSS"))
+    (#x1801 . ("Generic Attribute" "org.bluetooth.service.generic_attribute"
+	       "GSS"))
+    (#x1808 . ("Glucose" "org.bluetooth.service.glucose" "GSS"))
+    (#x1809 . ("Health Thermometer" "org.bluetooth.service.health_thermometer"
+	       "GSS"))
+    (#x180D . ("Heart Rate" "org.bluetooth.service.heart_rate" "GSS"))
+    (#x1823 . ("HTTP Proxy" "org.bluetooth.service.http_proxy" "GSS"))
+    (#x1812 . ("Human Interface Device"
+	       "org.bluetooth.service.human_interface_device" "GSS"))
+    (#x1802 . ("Immediate Alert" "org.bluetooth.service.immediate_alert"
+	       "GSS"))
+    (#x1821 . ("Indoor Positioning" "org.bluetooth.service.indoor_positioning"
+	       "GSS"))
+    (#x183A . ("Insulin Delivery" "org.bluetooth.service.insulin_delivery"
+	       "GSS"))
+    (#x1820 . ("Internet Protocol Support Service"
+	       "org.bluetooth.service.internet_protocol_support" "GSS"))
+    (#x1803 . ("Link Loss" "org.bluetooth.service.link_loss" "GSS"))
+    (#x1819 . ("Location and Navigation"
+	       "org.bluetooth.service.location_and_navigation" "GSS"))
+    (#x1827 . ("Mesh Provisioning Service"
+	       "org.bluetooth.service.mesh_provisioning" "GSS"))
+    (#x1828 . ("Mesh Proxy Service" "org.bluetooth.service.mesh_proxy" "GSS"))
+    (#x1807 . ("Next DST Change Service"
+	       "org.bluetooth.service.next_dst_change" "GSS"))
+    (#x1825 . ("Object Transfer Service"
+	       "org.bluetooth.service.object_transfer" "GSS"))
+    (#x180E . ("Phone Alert Status Service"
+	       "org.bluetooth.service.phone_alert_status" "GSS"))
+    (#x1822 . ("Pulse Oximeter Service" "org.bluetooth.service.pulse_oximeter"
+	       "GSS"))
+    (#x1829 . ("Reconnection Configuration"
+	       "org.bluetooth.service.reconnection_configuration" "GSS"))
+    (#x1806 . ("Reference Time Update Service"
+	       "org.bluetooth.service.reference_time_update" "GSS"))
+    (#x1814 . ("Running Speed and Cadence"
+	       "org.bluetooth.service.running_speed_and_cadence" "GSS"))
+    (#x1813 . ("Scan Parameters" "org.bluetooth.service.scan_parameters"
+	       "GSS"))
+    (#x1824 . ("Transport Discovery"
+	       "org.bluetooth.service.transport_discovery" "GSS"))
+    (#x1804 . ("Tx Power" "org.bluetooth.service.tx_power" "GSS"))
+    (#x181C . ("User Data" "org.bluetooth.service.user_data" "GSS"))
+    (#x181D . ("Weight Scale" "org.bluetooth.service.weight_scale" "GSS")))
+  "Bluetooth GATT service UUIDs.")
+
+
 (defconst bluetooth--base-uuid "0000-1000-8000-00805f9b34fb"
   "Bluetooth base UUID.")
 
@@ -607,8 +695,33 @@ This function only uses the first adapter reported by Bluez."
 			  "-" (eval bluetooth--base-uuid) eos))))
     (save-match-data
       (when (string-match uuid-re uuid)
-	(alist-get (string-to-number (match-string 1 uuid) 16)
-		   bluetooth--service-class-uuid-alist)))))
+	(let ((service-id (string-to-number (match-string 1 uuid) 16)))
+	  (if (>= service-id #x1800)
+	      (subseq (alist-get service-id
+				 bluetooth--gatt-service-uuid-alist)
+		      0 2)
+	    (alist-get service-id bluetooth--service-class-uuid-alist)))))))
+
+(defun bluetooth--show-device-info (device)
+  "Show information about DEVICE in a temp buffer"
+  (bluetooth--with-alias device
+    (with-current-buffer-window
+     (concat "*" alias "*") nil nil
+     (insert "Alias:\t\t" alias "\n")
+     (insert "Address:\t" (bluetooth--call-method
+			  (car (last (split-string device "/"))) :device
+			  #'dbus-get-property "Address")
+	     "\n")
+     (let ((uuids (bluetooth--call-method
+		   (car (last (split-string device "/"))) :device
+		   #'dbus-get-property "UUIDs")))
+       (insert "\nService classes:\n")
+       (dolist (id uuids)
+	 (insert (mapconcat #'identity
+			    (or (bluetooth--parse-service-class-uuid id)
+				(list id))
+			    " -- ")
+		 "\n"))))))
 
 (provide 'bluetooth)
 
