@@ -300,25 +300,30 @@ devices, as well as setting properties."
 ;;; Invoke a D-Bus method with or without parameters.
 (defun bluetooth--dbus-method (method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
-  (apply #'bluetooth--call-method (tabulated-list-get-id) api
-	 #'dbus-call-method-asynchronously method
-	 #'bluetooth--update-list :timeout bluetooth--timeout args))
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (apply #'bluetooth--call-method dev-id api
+	     #'dbus-call-method-asynchronously method
+	     #'bluetooth--update-list :timeout bluetooth--timeout args))))
 
 ;;; Toggle a property.
 (defun bluetooth--dbus-toggle (property api)
   "Toggle boolean PROPERTY on D-Bus API."
-  (let* ((dev-id (tabulated-list-get-id))
-	 (value (bluetooth--call-method dev-id api
-					#'dbus-get-property property)))
-    (bluetooth--call-method dev-id api #'dbus-set-property property (not value))
-    (bluetooth--update-list)))
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (let ((value (bluetooth--call-method dev-id api
+					   #'dbus-get-property property)))
+	(bluetooth--call-method dev-id api #'dbus-set-property property
+				(not value))
+	(bluetooth--update-list)))))
 
 ;;; Set a property.
 (defun bluetooth--dbus-set (property arg api)
   "Set PROPERTY to ARG on D-Bus API."
-  (bluetooth--call-method (tabulated-list-get-id)
-			  api #'dbus-set-property property arg)
-  (bluetooth--update-list))
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (bluetooth--call-method dev-id api #'dbus-set-property property arg)
+      (bluetooth--update-list))))
 
 ;;; end of worker function definitions
 
