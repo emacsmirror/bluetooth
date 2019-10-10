@@ -599,6 +599,52 @@ This function only uses the first adapter reported by Bluez."
   "Get the minor field spec for FIELD using DATA as specification."
   (symbol-value (cdr (alist-get field data))))
 
+(defun bluetooth-show-device-info ()
+  "Show detail information on the device at point."
+  (interactive)
+  (bluetooth--show-device-info (tabulated-list-get-id)))
+
+(defun bluetooth--show-device-info (device)
+  "Show information about DEVICE in a temp buffer"
+  (bluetooth--with-alias device
+    (with-current-buffer-window
+     "*Bluetooth device info*" nil nil
+     (let ((address (bluetooth--call-method
+		     (car (last (split-string device "/"))) :device
+		     #'dbus-get-property "Address"))
+	   (rssi (bluetooth--call-method
+		  (car (last (split-string device "/"))) :device
+		  #'dbus-get-property "RSSI"))
+	   (class (bluetooth--call-method
+		   (car (last (split-string device "/"))) :device
+		   #'dbus-get-property "Class"))
+	   (uuids (bluetooth--call-method
+		   (car (last (split-string device "/"))) :device
+		   #'dbus-get-property "UUIDs")))
+       (insert "Alias:\t\t" alias "\n")
+       (when address
+	 (insert "Address:\t" address "\n"))
+       (when rssi
+	 (insert "RSSI:\t\t" (number-to-string rssi) "\n"))
+       (when class
+	 (let ((p-class (bluetooth--parse-class class)))
+	   (insert "\nService and device classes:\n")
+	   (mapc (lambda (x)
+		   (insert (car x) ":\n")
+		   (if (listp (cadr x))
+		       (dolist (elt (cadr x))
+			 (insert "\t" elt "\n"))
+		     (insert "\t" (cadr x) "\n")))
+		 p-class)))
+       (when uuids
+	 (insert "\nServices (UUIDs):\n")
+	 (dolist (id uuids)
+	   (insert (mapconcat #'identity
+			      (or (bluetooth--parse-service-class-uuid id)
+				  (list id))
+			      " -- ")
+		   "\n")))))))
+
 ;;; The following constants define the meaning of the Bluetooth
 ;;; CLASS property, which is made up of a number of fields.
 ;;; The following components are used:
@@ -811,52 +857,6 @@ This function only uses the first adapter reported by Bluez."
 	     (#xe . "Generic Health Manager")
 	     (#xf . "Personal Mobility Device"))))
   "Bluetooth health minor classes.")
-
-(defun bluetooth-show-device-info ()
-  "Show detail information on the device at point."
-  (interactive)
-  (bluetooth--show-device-info (tabulated-list-get-id)))
-
-(defun bluetooth--show-device-info (device)
-  "Show information about DEVICE in a temp buffer"
-  (bluetooth--with-alias device
-    (with-current-buffer-window
-     "*Bluetooth device info*" nil nil
-     (let ((address (bluetooth--call-method
-		     (car (last (split-string device "/"))) :device
-		     #'dbus-get-property "Address"))
-	   (rssi (bluetooth--call-method
-		  (car (last (split-string device "/"))) :device
-		  #'dbus-get-property "RSSI"))
-	   (class (bluetooth--call-method
-		   (car (last (split-string device "/"))) :device
-		   #'dbus-get-property "Class"))
-	   (uuids (bluetooth--call-method
-		   (car (last (split-string device "/"))) :device
-		   #'dbus-get-property "UUIDs")))
-       (insert "Alias:\t\t" alias "\n")
-       (when address
-	 (insert "Address:\t" address "\n"))
-       (when rssi
-	 (insert "RSSI:\t\t" (number-to-string rssi) "\n"))
-       (when class
-	 (let ((p-class (bluetooth--parse-class class)))
-	   (insert "\nService and device classes:\n")
-	   (mapc (lambda (x)
-		   (insert (car x) ":\n")
-		   (if (listp (cadr x))
-		       (dolist (elt (cadr x))
-			 (insert "\t" elt "\n"))
-		     (insert "\t" (cadr x) "\n")))
-		 p-class)))
-       (when uuids
-	 (insert "\nServices (UUIDs):\n")
-	 (dolist (id uuids)
-	   (insert (mapconcat #'identity
-			      (or (bluetooth--parse-service-class-uuid id)
-				  (list id))
-			      " -- ")
-		   "\n")))))))
 
 (defconst bluetooth--service-class-uuid-alist
   '((#x1000 . ("ServiceDiscoveryServerServiceClassID"
@@ -1405,7 +1405,6 @@ This function only uses the first adapter reported by Bluez."
     (#xFD88 . "Urbanminded LTD")
     (#xFD87 . "Google LLC"))
   "Bluetooth manufacturer UUIDs.")
-
 
 (provide 'bluetooth)
 
