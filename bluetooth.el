@@ -114,7 +114,7 @@
   "Return the adapter of DEV-ID."
   (bluetooth--dev-state "Adapter" (assoc dev-id bluetooth--device-info)))
 
-(defun bluetooth--root (dev-id)
+(defun bluetooth--root (_)
   "Return the root, ignoring DEV-ID."
   bluetooth--root)
 
@@ -453,7 +453,7 @@ This function only uses the first adapter reported by Bluez."
 			 alias))))
 	(min (max (string-to-number pk) 0) 999999)))))
 
-(defun bluetooth--display-passkey (device passkey entered)
+(defun bluetooth--display-passkey (device passkey _)
   "Display PASSKEY for DEVICE, ignoring ENTERED (for now)."
   (bluetooth--with-alias device
     (message "Bluetooth Passkey for `%s': %06d" alias passkey)
