@@ -46,6 +46,16 @@
 (require 'dash)
 (require 'rx)
 
+(defgroup bluetooth nil
+  "Bluetooth device management."
+  :group 'comm)
+
+(defcustom bluetooth-bluez-bus :system
+  "D-Bus bus that Bluez is registered on.
+This is usually `:system' if bluetoothd runs as a system service, or
+`:session' if it runs as a user service."
+  :type '(symbol))
+
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
 
@@ -86,6 +96,10 @@
   "D-Bus interface name for the agent.")
 
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
+
+(eval-and-compile
+  (defconst bluetooth--base-uuid "0000-1000-8000-00805f9b34fb"
+    "Bluetooth base UUID."))
 
 ;;; API description:
 ;;;
@@ -223,9 +237,10 @@ devices, as well as setting properties."
   "Return a list of bluetooth adapters and devices connected to them."
   (mapcar (lambda (a)
 	    (list a (dbus-introspect-get-node-names
-		     :system bluetooth--service (concat bluetooth--root "/" a))))
+		     bluetooth-bluez-bus bluetooth--service
+		     (concat bluetooth--root "/" a))))
 	  (dbus-introspect-get-node-names
-	   :system bluetooth--service bluetooth--root)))
+	   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
 
 ;;; Given a device list as obtained from `bluetooth--get-devices'
 ;;; this function gathers all the properties of each device.
@@ -251,7 +266,8 @@ devices, as well as setting properties."
 				    (list bluetooth--root (car devlist) dev)
 				    "/")
 	      collect (cons dev (list (dbus-get-all-properties
-				       :system bluetooth--service path
+				       bluetooth-bluez-bus
+				       bluetooth--service path
 				       "org.bluez.Device1")))))
    devices))
 
@@ -290,7 +306,7 @@ devices, as well as setting properties."
 			 (plist-get (plist-get bluetooth--api-info api) :path)
 			 "/"))
 	(interface (plist-get (plist-get bluetooth--api-info api) :interface)))
-    (apply function :system bluetooth--service path interface
+    (apply function bluetooth-bluez-bus bluetooth--service path interface
 	   (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
 		   args))))
 
@@ -353,8 +369,8 @@ devices, as well as setting properties."
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
   (let* ((adapters (dbus-introspect-get-node-names
-		    :system bluetooth--service bluetooth--root))
-	 (resp (dbus-get-all-properties :system bluetooth--service
+		    bluetooth-bluez-bus bluetooth--service bluetooth--root))
+	 (resp (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
 					(concat bluetooth--root "/"
 						(car adapters))
 					"org.bluez.Adapter1"))
@@ -383,7 +399,7 @@ This function only uses the first adapter reported by Bluez."
   "Display a list of Bluetooth devices that are available."
   (interactive)
   ;; make sure D-Bus is (made) available
-  (dbus-ping :system bluetooth--service bluetooth--timeout)
+  (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
   (let ((buffer-exists (get-buffer bluetooth-buffer-name)))
     (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
       (unless buffer-exists
@@ -508,27 +524,25 @@ This function only uses the first adapter reported by Bluez."
 					"[A-Z][a-z]+"
 					(lambda (x) (concat "-" (downcase x)))
 					method t))
-		   collect (dbus-register-method :system dbus-service-emacs
+		   collect (dbus-register-method bluetooth-bluez-bus
+						 dbus-service-emacs
 						 bluetooth--own-path
 						 bluetooth--agent-intf
 						 method (intern fname) t))))
   (dbus-register-service :session dbus-service-emacs)
-  (dbus-call-method :system bluetooth--service bluetooth--root
+  (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		    bluetooth--agent-mngr-intf "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
 
 (defun bluetooth--unregister-agent ()
   "Unregister the pairing agent."
   (ignore-errors
-    (dbus-call-method :system bluetooth--service bluetooth--root
+    (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		      bluetooth--agent-mngr-intf "UnregisterAgent"
 		      :object-path bluetooth--own-path)
     (mapc #'dbus-unregister-object bluetooth--method-objects)))
 
 ;;; Application layer
-
-(defconst bluetooth--base-uuid "0000-1000-8000-00805f9b34fb"
-  "Bluetooth base UUID.")
 
 (defun bluetooth--parse-service-class-uuid (uuid)
   "Parse UUID and return short and long service class names."
