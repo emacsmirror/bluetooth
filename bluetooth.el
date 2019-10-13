@@ -440,19 +440,17 @@ This function only uses the first adapter reported by Bluez."
   (bluetooth--maybe-cancel-reject
     (bluetooth--with-alias device
       (save-match-data
-	(let* ((pin (read-passwd (format "Enter Bluetooth PIN for `%s': " alias)))
+	(let* ((pin (read-from-minibuffer
+		     (format "Enter Bluetooth PIN for `%s': " alias)))
 	       (trimmed-pin (substring pin 0 (min (length pin) 16)))
 	       (case-fold-search nil))
-	  (unwind-protect
-	      (cond ((= 0 (length trimmed-pin))
-		     (message "PIN has zero length")
-		     nil)
-		    ((string-match "[^[:alnum:]]" trimmed-pin)
-		     (message "PIN contains non-alphanumeric characters")
-		     nil)
-		    (t trimmed-pin))
-	    (clear-string pin)
-	    (clear-string trimmed-pin)))))))
+	  (cond ((= 0 (length trimmed-pin))
+		 (message "PIN has zero length")
+		 nil)
+		((string-match "[^[:alnum:]]" trimmed-pin)
+		 (message "PIN contains non-alphanumeric characters")
+		 nil)
+		(t trimmed-pin)))))))
 
 (defun bluetooth--display-pin-code (device pincode)
   "Display the PINCODE for DEVICE."
