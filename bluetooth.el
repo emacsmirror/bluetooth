@@ -400,17 +400,16 @@ This function only uses the first adapter reported by Bluez."
   (interactive)
   ;; make sure D-Bus is (made) available
   (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
-  (let ((buffer-exists (get-buffer bluetooth-buffer-name)))
-    (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-      (unless buffer-exists
-	(erase-buffer)
-	(bluetooth-mode)
-	(bluetooth--register-agent)
-	(add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-	(make-local-variable 'mode-line-misc-info)
-	(cl-pushnew bluetooth--mode-info mode-line-misc-info)
-	(setq imenu-create-index-function #'bluetooth--create-imenu-index))
-      (tabulated-list-print t))))
+  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
+    (unless (eq major-mode 'bluetooth-mode)
+      (erase-buffer)
+      (bluetooth-mode)
+      (bluetooth--register-agent)
+      (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
+      (make-local-variable 'mode-line-misc-info)
+      (cl-pushnew bluetooth--mode-info mode-line-misc-info)
+      (setq imenu-create-index-function #'bluetooth--create-imenu-index))
+    (tabulated-list-print t)))
 
 ;;; Bluetooth pairing agent code
 
