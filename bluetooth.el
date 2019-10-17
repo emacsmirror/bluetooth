@@ -222,6 +222,7 @@ devices, as well as setting properties."
   (setq tabulated-list-format bluetooth--list-format
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1)
+  (hl-line-mode)
   (bluetooth--make-commands)
   (define-key bluetooth-mode-map [?i] #'bluetooth-show-device-info)
   (tabulated-list-init-header))
