@@ -222,7 +222,6 @@ devices, as well as setting properties."
   (setq tabulated-list-format bluetooth--list-format
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1)
-  (hl-line-mode)
   (bluetooth--make-commands)
   (define-key bluetooth-mode-map [?i] #'bluetooth-show-device-info)
   (tabulated-list-init-header))
@@ -409,8 +408,9 @@ This function only uses the first adapter reported by Bluez."
       (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
       (make-local-variable 'mode-line-misc-info)
       (cl-pushnew bluetooth--mode-info mode-line-misc-info)
-      (setq imenu-create-index-function #'bluetooth--create-imenu-index))
-    (tabulated-list-print t)))
+      (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+      (tabulated-list-print t)
+      (hl-line-mode))))
 
 ;;; Bluetooth pairing agent code
 
