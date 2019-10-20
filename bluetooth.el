@@ -85,10 +85,6 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defconst bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
 
-;;; the interface name for the pairing agent
-(defconst bluetooth--own-intf (concat dbus-interface-emacs ".bluetooth")
-  "D-Bus interface name for the pairing agent.")
-
 (defconst bluetooth--agent-mngr-intf "org.bluez.AgentManager1"
   "D-Bus interface name for the agent manager.")
 
