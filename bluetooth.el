@@ -643,7 +643,8 @@ This function only uses the first adapter reported by Bluez."
 			      (or (bluetooth--parse-service-class-uuid id)
 				  (list id))
 			      " -- ")
-		   "\n")))))))
+		   "\n"))))
+     (special-mode))))
 
 ;;; The following constants define the meaning of the Bluetooth
 ;;; CLASS property, which is made up of a number of fields.
