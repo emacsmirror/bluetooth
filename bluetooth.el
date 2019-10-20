@@ -217,8 +217,8 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (define-derived-mode bluetooth-mode tabulated-list-mode
   bluetooth--mode-name
   "Major mode for managing Bluetooth devices.
-This mode allows pairing with and connecting to Bluetooth
-devices, as well as setting properties."
+
+For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (setq tabulated-list-format bluetooth--list-format
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1)
@@ -396,7 +396,12 @@ This function only uses the first adapter reported by Bluez."
 
 ;;;###autoload
 (defun list-bluetooth-devices ()
-  "Display a list of Bluetooth devices that are available."
+  "Display a list of Bluetooth devices.
+This function starts Bluetooth mode which offers an interface
+with simple device management functions (e.g. pairing, connecting,
+scanning the bus etc.)
+
+For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (interactive)
   ;; make sure D-Bus is (made) available
   (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
