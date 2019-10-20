@@ -663,6 +663,9 @@ This function only uses the first adapter reported by Bluez."
 ;;;     invoked with the masked and shifted CLASS and DATA
 ;;;   - nil, if no further processing of CLASS is necessary
 ;;; DATA: the data passed to the parsing (FN) or NEXT functions
+;;;
+;;; The information used in all the following lists has been taken
+;;; from the Bluetooth website: https://www.bluetooth.com/
 (defconst bluetooth--class-major-services
   '((name . "major service classes")
     (mask . #xffe000)
