@@ -17,7 +17,50 @@
 
 ** Usage
 
-   To use it, invoke ~M-x package-install-file~ on  ~bluetooth.el~
-   and then  ~M-x list-bluetooth-devices~.  No configuration is
-   necessary or possible.  Use ~M-x describe-mode~ (usually ~C-h m~) to get a list
-   of key bindings.
+   To install it, invoke ~M-x package-install-file~ on  ~bluetooth.el~
+   and then  use it with ~M-x list-bluetooth-devices~.
+
+   The mode assumes availability of Bluez on D-Bus.  Depending on the system
+   configuration, Bluez may use the ~:system~ bus or the ~:session~ bus.  This
+   can be configured by using ~M-x customize~ to set the ~bluetooth-bluez-bus~
+   variable in the ~Communication/Bluetooth~ menu to either the symbol
+   ~:system~ or ~:session~, as appropriate.
+
+*** Key bindings
+
+    | Key         | Command                                                                |
+    |-------------+------------------------------------------------------------------------|
+    | P           | pair with a device                                                     |
+    | c           | connect to a device (may start pairing procedure)                      |
+    | d           | disconnect a device                                                    |
+    | a           | set or reset a device's alias                                          |
+    | t           | toggle the trusted property of a device                                |
+    | b           | toggle the blocked property of a device (disconnects connected device) |
+    | k           | remove a device (will disconnect and unpair)                           |
+    | i           | show device information, such as RSSI value, device class and services |
+    | r           | start discovery (scan) mode                                            |
+    | R           | stop discovery (scan) mode                                             |
+    | D           | toggle the discoverable property of the adapter                        |
+    | x           | toggle the pairable property of the adapter                            |
+    | s           | toggle the power supply of the adapter                                 |
+    | n           | next line                                                              |
+    | p           | previous line                                                          |
+    | <           | go to the beginning of the buffer                                      |
+    | >           | go to the end of the buffer                                            |
+    | g           | revert the buffer; this queries the bus for accessible devices           |
+    | S           | sort list by column at point                                           |
+    | h or ?      | describe the mode                                                      |
+    | q           | bury the buffer                                                        |
+    | ~M-x imenu~ | invoke imenu to select a device                                        |
+
+
+*** Notes
+
+    - Discoverable mode is usually deactivated after 3 minutes, as configured
+      in the ~bluetoothd~ configuration file (e.g. ~/etc/bluetooth/main.conf~.)
+    - Blocking a connected device will disconnect it.
+    - If a device is trusted, authorisation of services is not required when
+      connecting; devices are not trusted automatically.
+    - Adapter commands always use to the adapter the device under point is
+      referred to.  At the moment, only the status of the first adapter is
+      shown in the mode line.
