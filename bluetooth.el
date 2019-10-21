@@ -85,54 +85,17 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defconst bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
 
-(defconst bluetooth--agent-mngr-intf "org.bluez.AgentManager1"
-  "D-Bus interface name for the agent manager.")
-
-(defconst bluetooth--agent-intf "org.bluez.Agent1"
-  "D-Bus interface name for the agent.")
-
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
 
 (eval-and-compile
   (defconst bluetooth--base-uuid "0000-1000-8000-00805f9b34fb"
     "Bluetooth base UUID."))
 
-;;; API description:
-;;;
-;;; This is a plist of plists, providing API information for the
-;;; implemented D-Bus APIs.
-;;;
-;;; For instance, API :device has path-spec (bluetooth--adapter
-;;; bluetooth--device) and interface "org.bluez.Device1".
-;;;
-;;; The path-spec is a list of functions, defined below, that
-;;; return the designated constituents of the D-Bus path.
-(defconst bluetooth--api-info '(:device
-				(:path
-				 (bluetooth--adapter bluetooth--device)
-				 :interface "org.bluez.Device1")
-				:adapter
-				(:path
-				 (bluetooth--adapter)
-				 :interface "org.bluez.Adapter1"))
-  "Bluez D-Bus API information about paths and interfaces.")
-
-;;; The following functions provide the constituents of the path
-;;; spec in `bluetooth--api-info'.
-
-(defun bluetooth--adapter (dev-id)
-  "Return the adapter of DEV-ID."
-  (bluetooth--dev-state "Adapter" (assoc dev-id bluetooth--device-info)))
-
-(defun bluetooth--root (_)
-  "Return the root, ignoring DEV-ID."
-  bluetooth--root)
-
-(defun bluetooth--device (dev-id)
-  "Return the device name of DEV-ID."
-  dev-id)
-
-;;; end of path spec functions
+(defconst bluetooth--interfaces '((:device . "org.bluez.Device1")
+				  (:adapter . "org.bluez.Adapter1")
+				  (:agent-manager . "org.bluez.AgentManager1")
+				  (:agent . "org.bluez.Agent1"))
+  "Bluez D-Bus interfaces.")
 
 ;;; Default timeout for D-Bus commands
 (defvar bluetooth--timeout 5000 "Default timeout for Bluez D-Bus access.")
@@ -264,7 +227,8 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	      collect (cons dev (list (dbus-get-all-properties
 				       bluetooth-bluez-bus
 				       bluetooth--service path
-				       "org.bluez.Device1")))))
+				       (alist-get :device
+						  bluetooth--interfaces))))))
    devices))
 
 (defun bluetooth--dev-state (key device)
@@ -369,10 +333,11 @@ This function only uses the first adapter reported by Bluez."
 	 (resp (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
 					(concat bluetooth--root "/"
 						(car adapters))
-					"org.bluez.Adapter1"))
+					(alist-get :adapter
+						   bluetooth--interfaces)))
 	 (info (mapconcat #'identity
 			  (-keep (lambda (x) (if (cdr (assoc (car x) resp))
-					    (cadr x) (caddr x)))
+						 (cadr x) (caddr x)))
 				 bluetooth--mode-state)
 			  ",")))
     (unless (string-blank-p info)
@@ -494,9 +459,9 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (bluetooth--maybe-cancel-reject
     (bluetooth--with-alias device
       (let ((p-uuid (bluetooth--parse-service-class-uuid uuid)))
-	  (y-or-n-p
-	   (format "Authorize Bluetooth service `%s' for device `%s'? "
-		   p-uuid alias)))))
+	(y-or-n-p
+	 (format "Authorize Bluetooth service `%s' for device `%s'? "
+		 p-uuid alias)))))
   :ignore)
 
 (defun bluetooth--cancel ()
@@ -526,126 +491,25 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 		   collect (dbus-register-method bluetooth-bluez-bus
 						 dbus-service-emacs
 						 bluetooth--own-path
-						 bluetooth--agent-intf
+						 (alist-get :agent
+							    bluetooth--interfaces) 
 						 method (intern fname) t))))
   (dbus-register-service :session dbus-service-emacs)
   (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
-		    bluetooth--agent-mngr-intf "RegisterAgent"
+		    (alist-get :agent-manager bluetooth--interfaces)
+		    "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
 
 (defun bluetooth--unregister-agent ()
   "Unregister the pairing agent."
   (ignore-errors
     (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
-		      bluetooth--agent-mngr-intf "UnregisterAgent"
+		      (alist-get :agent-manager bluetooth--interfaces)
+		      "UnregisterAgent"
 		      :object-path bluetooth--own-path)
     (mapc #'dbus-unregister-object bluetooth--method-objects)))
 
 ;;; Application layer
-
-(defun bluetooth--parse-service-class-uuid (uuid)
-  "Parse UUID and return short and long service class names."
-  (let ((uuid-re (rx (seq bos (submatch (= 8 xdigit))
-			  "-" (eval bluetooth--base-uuid) eos))))
-    (save-match-data
-      (when (string-match uuid-re uuid)
-	(let ((service-id (string-to-number (match-string 1 uuid) 16)))
-	  (or (alist-get service-id
-			 (symbol-value
-			  (cdr (-find (lambda (x) (>= service-id (car x)))
-				  bluetooth--uuid-alists))))
-	      (list  (format "#x%08x" service-id) "unknown")))))))
-
-(defun bluetooth--parse-class (class)
-  "Parse the CLASS property of a Bluetooth device."
-  (cl-labels ((parse (field-def acc)
-		     (let-alist field-def
-		       (let* ((m-field (lsh (logand class .mask) .shift))
-			      (res (cons .name
-					 (list (funcall .fn m-field .data))))
-			      (n-acc (push res acc)))
-			 (cond ((functionp .next)
-				(let ((spec (funcall .next m-field .data)))
-				  (if spec
-				      (parse spec n-acc)
-				    (nreverse n-acc))))
-			       ((not (null .next))
-				(parse (symbol-value .next) n-acc))
-			       (t (nreverse n-acc)))))))
-    (parse bluetooth--class-major-services '())))
-
-(defun bluetooth--class-parse-bitfield (bitfield data)
-  "Parse BITFIELD using DATA as specification."
-  (or (delq nil (mapcar (lambda (x)
-		       (if (/= 0 (logand bitfield (lsh 1 (car x))))
-			   (cdr x)
-			 nil))
-			data))
-      "unknown"))
-
-(defun bluetooth--class-parse-major (field data)
-  "Parse major class FIELD using DATA as specification."
-  (or (car (alist-get field data))
-      "unknown"))
-
-(defun bluetooth--class-parse-value (field data)
-  "Parse minor class FIELD using DATA as specification."
-  (or (alist-get field data)
-      "unknown"))
-
-(defun bluetooth--class-parse-peripheral (field data)
-  "Parse peripheral class FIELD using DATA as specification."
-  (or (list (bluetooth--class-parse-value (logand (caar data) field)
-					  (cdar data))
-	    (bluetooth--class-parse-value (logand (caadr data) field)
-					  (cdadr data)))
-      "unknown"))
-
-(defun bluetooth--class-get-minor (field data)
-  "Get the minor field spec for FIELD using DATA as specification."
-  (symbol-value (cdr (alist-get field data))))
-
-(defun bluetooth-show-device-info ()
-  "Show detail information on the device at point."
-  (interactive)
-  (bluetooth--show-device-info (tabulated-list-get-id)))
-
-(defun bluetooth--show-device-info (device)
-  "Show information about DEVICE in a temp buffer"
-  (bluetooth--with-alias device
-    (with-current-buffer-window
-     "*Bluetooth device info*" nil nil
-     (let* ((props (bluetooth--call-method
-		     (car (last (split-string device "/"))) :device
-		     #'dbus-get-all-properties))
-	   (address (cdr (assoc "Address" props)))
-	   (rssi (cdr (assoc "RSSI" props)))
-	   (class (cdr (assoc "Class" props)))
-	   (uuids (cdr (assoc "UUIDs" props))))
-       (insert "Alias:\t\t" alias "\n")
-       (when address
-	 (insert "Address:\t" address "\n"))
-       (when rssi
-	 (insert "RSSI:\t\t" (number-to-string rssi) "\n"))
-       (when class
-	 (let ((p-class (bluetooth--parse-class class)))
-	   (insert "\nService and device classes:\n")
-	   (mapc (lambda (x)
-		   (insert (car x) ":\n")
-		   (if (listp (cadr x))
-		       (dolist (elt (cadr x))
-			 (insert "\t" elt "\n"))
-		     (insert "\t" (cadr x) "\n")))
-		 p-class)))
-       (when uuids
-	 (insert "\nServices (UUIDs):\n")
-	 (dolist (id uuids)
-	   (insert (mapconcat #'identity
-			      (or (bluetooth--parse-service-class-uuid id)
-				  (list id))
-			      " -- ")
-		   "\n"))))
-     (special-mode))))
 
 ;;; The following constants define the meaning of the Bluetooth
 ;;; CLASS property, which is made up of a number of fields.
@@ -1048,8 +912,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
     (#xFFFE . ("AirFuel Alliance" "Wireless Power Transfer Service")))
   "Bluetooth standards development organizations UUIDS.")
 
-;;; This is a very long list of manufacturer UUIDs and therefore
-;;; the last thing in this file.
 (defconst bluetooth--member-uuid-alist
   '((#xFEFF . ("GN Netcom"))
     (#xFEFE . ("GN ReSound A/S"))
@@ -1429,6 +1291,108 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
     (#xFD88 . ("Urbanminded LTD"))
     (#xFD87 . ("Google LLC")))
   "Bluetooth manufacturer UUIDs.")
+
+(defun bluetooth--parse-service-class-uuid (uuid)
+  "Parse UUID and return short and long service class names."
+  (let ((uuid-re (rx (seq bos (submatch (= 8 xdigit))
+			  "-" (eval bluetooth--base-uuid) eos))))
+    (save-match-data
+      (when (string-match uuid-re uuid)
+	(let ((service-id (string-to-number (match-string 1 uuid) 16)))
+	  (or (alist-get service-id
+			 (symbol-value
+			  (cdr (-find (lambda (x) (>= service-id (car x)))
+				      bluetooth--uuid-alists))))
+	      (list  (format "#x%08x" service-id) "unknown")))))))
+
+(defun bluetooth--parse-class (class)
+  "Parse the CLASS property of a Bluetooth device."
+  (cl-labels ((parse (field-def acc)
+		     (let-alist field-def
+		       (let* ((m-field (lsh (logand class .mask) .shift))
+			      (res (cons .name
+					 (list (funcall .fn m-field .data))))
+			      (n-acc (push res acc)))
+			 (cond ((functionp .next)
+				(let ((spec (funcall .next m-field .data)))
+				  (if spec
+				      (parse spec n-acc)
+				    (nreverse n-acc))))
+			       ((not (null .next))
+				(parse (symbol-value .next) n-acc))
+			       (t (nreverse n-acc)))))))
+    (parse bluetooth--class-major-services '())))
+
+(defun bluetooth--class-parse-bitfield (bitfield data)
+  "Parse BITFIELD using DATA as specification."
+  (or (delq nil (mapcar (lambda (x)
+			  (if (/= 0 (logand bitfield (lsh 1 (car x))))
+			      (cdr x)
+			    nil))
+			data))
+      "unknown"))
+
+(defun bluetooth--class-parse-major (field data)
+  "Parse major class FIELD using DATA as specification."
+  (or (car (alist-get field data))
+      "unknown"))
+
+(defun bluetooth--class-parse-value (field data)
+  "Parse minor class FIELD using DATA as specification."
+  (or (alist-get field data)
+      "unknown"))
+
+(defun bluetooth--class-parse-peripheral (field data)
+  "Parse peripheral class FIELD using DATA as specification."
+  (or (list (bluetooth--class-parse-value (logand (caar data) field)
+					  (cdar data))
+	    (bluetooth--class-parse-value (logand (caadr data) field)
+					  (cdadr data)))
+      "unknown"))
+
+(defun bluetooth--class-get-minor (field data)
+  "Get the minor field spec for FIELD using DATA as specification."
+  (symbol-value (cdr (alist-get field data))))
+
+(defun bluetooth-show-device-info ()
+  "Show detail information on the device at point."
+  (interactive)
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (bluetooth--with-alias dev-id
+	(with-current-buffer-window
+	 "*Bluetooth device info*" nil nil
+	 (let* ((props (bluetooth--call-method
+			(car (last (split-string dev-id "/"))) :device
+			#'dbus-get-all-properties))
+		(address (cdr (assoc "Address" props)))
+		(rssi (cdr (assoc "RSSI" props)))
+		(class (cdr (assoc "Class" props)))
+		(uuids (cdr (assoc "UUIDs" props))))
+	   (insert "Alias:\t\t" alias "\n")
+	   (when address
+	     (insert "Address:\t" address "\n"))
+	   (when rssi
+	     (insert "RSSI:\t\t" (number-to-string rssi) "\n"))
+	   (when class
+	     (let ((p-class (bluetooth--parse-class class)))
+	       (insert "\nService and device classes:\n")
+	       (mapc (lambda (x)
+		       (insert (car x) ":\n")
+		       (if (listp (cadr x))
+			   (dolist (elt (cadr x))
+			     (insert "\t" elt "\n"))
+			 (insert "\t" (cadr x) "\n")))
+		     p-class)))
+	   (when uuids
+	     (insert "\nServices (UUIDs):\n")
+	     (dolist (id uuids)
+	       (insert (mapconcat #'identity
+				  (or (bluetooth--parse-service-class-uuid id)
+				      (list id))
+				  " -- ")
+		       "\n"))))
+	 (special-mode))))))
 
 (provide 'bluetooth)
 
