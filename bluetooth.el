@@ -139,9 +139,6 @@ This is usually `:system' if bluetoothd runs as a system service, or
      (api . :adapter) (docstring . "Start discovery mode."))
     ((command . stop-discovery) (key . [?R]) (method . "StopDiscovery")
      (api . :adapter) (docstring . "Stop discovery mode."))
-    ((command . remove-device) (key . [?k]) (method . "RemoveDevice")
-     (api . :adapter) (args :object-path :path-devid)
-     (docstring . "Remove Bluetooth device at point."))
     ((command . toggle-power) (key . [?s]) (toggle . "Powered")
      (api . :adapter) (docstring . "Toggle power supply of adapter."))
     ((command . pair) (key . [?P]) (method . "Pair")
@@ -183,6 +180,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	tabulated-list-padding 1)
   (bluetooth--make-commands)
   (define-key bluetooth-mode-map [?i] #'bluetooth-show-device-info)
+  (define-key bluetooth-mode-map [?k] #'bluetooth-remove-device)
   (tabulated-list-init-header))
 
 ;;; This function returns a list of bluetooth adapters and devices
@@ -258,17 +256,39 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	   do (forward-line 1)
 	   collect (cons (elt entry 0) pos)))
 
+(defun bluetooth-remove-device ()
+  "Remove Bluetooth device at point."
+  (interactive)
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (bluetooth--call-method dev-id
+			      :adapter
+			      #'dbus-call-method-asynchronously
+			      "RemoveDevice"
+			      #'bluetooth--update-list
+			      :timeout bluetooth--timeout
+			      :object-path :path-devid))))
+
 ;;; This function calls FUNCTION with ARGS given the device-id DEV-ID and
 ;;; Bluez API.  This is used on D-Bus functions.
 (defun bluetooth--call-method (dev-id api function &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
-  (let ((path (mapconcat (lambda (f) (funcall f dev-id))
-			 (plist-get (plist-get bluetooth--api-info api) :path)
-			 "/"))
-	(interface (plist-get (plist-get bluetooth--api-info api) :interface)))
-    (apply function bluetooth-bluez-bus bluetooth--service path interface
-	   (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
-		   args))))
+  (let ((path (cond ((and (eq :device api)
+			  (not (null dev-id)))
+		     (concat (bluetooth--dev-state
+			      "Adapter"
+			      (assoc dev-id bluetooth--device-info))
+			     "/" dev-id))
+		    ((eq :adapter api)
+		     (concat bluetooth--root
+			     "/"
+			     (caar (bluetooth--get-devices))))
+		    (t nil)))
+	(interface (alist-get api bluetooth--interfaces)))
+    (when path
+      (apply function bluetooth-bluez-bus bluetooth--service path interface
+	     (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
+		     args)))))
 
 ;;; The following functions are the workers for the commands.
 ;;; They are used by `bluetooth--make-commands'.
@@ -277,29 +297,26 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 (defun bluetooth--dbus-method (method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
   (let ((dev-id (tabulated-list-get-id)))
-    (when dev-id
-      (apply #'bluetooth--call-method dev-id api
-	     #'dbus-call-method-asynchronously method
-	     #'bluetooth--update-list :timeout bluetooth--timeout args))))
+    (apply #'bluetooth--call-method dev-id api
+	   #'dbus-call-method-asynchronously method
+	   #'bluetooth--update-list :timeout bluetooth--timeout args)))
 
 ;;; Toggle a property.
 (defun bluetooth--dbus-toggle (property api)
   "Toggle boolean PROPERTY on D-Bus API."
-  (let ((dev-id (tabulated-list-get-id)))
-    (when dev-id
-      (let ((value (bluetooth--call-method dev-id api
-					   #'dbus-get-property property)))
-	(bluetooth--call-method dev-id api #'dbus-set-property property
-				(not value))
-	(bluetooth--update-list)))))
+  (let* ((dev-id (tabulated-list-get-id))
+	 (value (bluetooth--call-method dev-id api
+					#'dbus-get-property property)))
+    (bluetooth--call-method dev-id api #'dbus-set-property property
+			    (not value))
+    (bluetooth--update-list)))
 
 ;;; Set a property.
 (defun bluetooth--dbus-set (property arg api)
   "Set PROPERTY to ARG on D-Bus API."
   (let ((dev-id (tabulated-list-get-id)))
-    (when dev-id
-      (bluetooth--call-method dev-id api #'dbus-set-property property arg)
-      (bluetooth--update-list))))
+    (bluetooth--call-method dev-id api #'dbus-set-property property arg)
+    (bluetooth--update-list)))
 
 ;;; end of worker function definitions
 
