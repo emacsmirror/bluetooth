@@ -160,7 +160,8 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defun bluetooth--update-list ()
   "Update the list view."
   (with-current-buffer bluetooth-buffer-name
-    (tabulated-list-print t)))
+    (tabulated-list-print t)
+    (hl-line-highlight)))
 
 ;;; List format for the main display buffer.
 ;;; NOTE: the strings MUST correspond to Bluez device properties
