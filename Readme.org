@@ -28,6 +28,7 @@
 
 *** Key bindings
 
+    The following table lists the default key bindings:
     | Key         | Command                                                                |
     |-------------+------------------------------------------------------------------------|
     | P           | pair with a device                                                     |
@@ -61,6 +62,5 @@
     - Blocking a connected device will disconnect it.
     - If a device is trusted, authorisation of services is not required when
       connecting; devices are not trusted automatically.
-    - Adapter commands always use the adapter the device under point is
-      referred to.  At the moment, only the status of the first adapter is
-      shown in the mode line.
+    - Adapter commands always use the first adapter found in the system
+      (i.e. reported by Bluez.)
