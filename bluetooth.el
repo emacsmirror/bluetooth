@@ -106,7 +106,6 @@ This is usually `:system' if bluetoothd runs as a system service, or
 ;;; This alist specifies all the commands. The format is as follows:
 ;;;
 ;;; command . COMMAND specifies the command name
-;;; key . [?c] specifies the key binding in `bluetooth-mode-map'
 ;;; method . "Method" specifies a D-Bus method "Method"
 ;;; toggle . "Tprop" specifies a D-Bus property "Tprop" that is toggled
 ;;; by the command
@@ -123,30 +122,50 @@ This is usually `:system' if bluetoothd runs as a system service, or
 ;;;                (e.g. "/org/bluez/hci0/dev_...")
 ;;; run . (FORM) runs the lisp FORM after the D-Bus command
 ;;; docstring . "STRING" adds STRING as documentation to the command
-(defvar bluetooth--commands
-  '(((command . connect) (key . [?c]) (method . "Connect") (api . :device)
+(defconst bluetooth--commands
+  '(((command . connect) (method . "Connect") (api . :device)
      (docstring . "Connect to the Bluetooth device at point."))
-    ((command . disconnect) (key . [?d]) (method . "Disconnect")
+    ((command . disconnect) (method . "Disconnect")
      (api . :device) (docstring . "Disconnect Bluetooth device at point."))
-    ((command . toggle-blocked) (key . [?b]) (toggle . "Blocked")
+    ((command . toggle-blocked) (toggle . "Blocked")
      (api . :device) (docstring . "Mark Bluetooth device at point blocked."))
-    ((command . toggle-trusted) (key . [?t]) (toggle . "Trusted")
+    ((command . toggle-trusted) (toggle . "Trusted")
      (api . :device) (docstring . "Mark Bluetooth device at point trusted."))
-    ((command . set-alias) (key . [?a]) (set . "Alias")
+    ((command . set-alias) (set . "Alias")
      (query . "Alias (empty to reset): ") (api . :device)
      (docstring . "Set alias of Bluetooth device at point."))
-    ((command . start-discovery) (key . [?r]) (method . "StartDiscovery")
+    ((command . start-discovery) (method . "StartDiscovery")
      (api . :adapter) (docstring . "Start discovery mode."))
-    ((command . stop-discovery) (key . [?R]) (method . "StopDiscovery")
+    ((command . stop-discovery) (method . "StopDiscovery")
      (api . :adapter) (docstring . "Stop discovery mode."))
-    ((command . toggle-power) (key . [?s]) (toggle . "Powered")
+    ((command . toggle-power) (toggle . "Powered")
      (api . :adapter) (docstring . "Toggle power supply of adapter."))
-    ((command . pair) (key . [?P]) (method . "Pair")
+    ((command . pair) (method . "Pair")
      (api . :device) (docstring . "Pair with a device."))
-    ((command . toggle-discoverable) (key . [?D]) (toggle . "Discoverable")
+    ((command . toggle-discoverable) (toggle . "Discoverable")
      (api . :adapter) (docstring . "Toggle discoverable mode."))
-    ((command . toggle-pairable) (key . [?x]) (toggle . "Pairable")
-     (api . :adapter) (docstring . "Toggle pairable mode."))))
+    ((command . toggle-pairable) (toggle . "Pairable")
+     (api . :adapter) (docstring . "Toggle pairable mode.")))
+  "Bluetooth command definitions.")
+
+(defvar bluetooth-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map [?c] #'bluetooth-connect)
+    (define-key map [?d] #'bluetooth-disconnect)
+    (define-key map [?b] #'bluetooth-toggle-blocked)
+    (define-key map [?t] #'bluetooth-toggle-trusted)
+    (define-key map [?a] #'bluetooth-set-alias)
+    (define-key map [?r] #'bluetooth-start-discovery)
+    (define-key map [?R] #'bluetooth-stop-discovery)
+    (define-key map [?s] #'bluetooth-toggle-power)
+    (define-key map [?P] #'bluetooth-pair)
+    (define-key map [?D] #'bluetooth-toggle-discoverable)
+    (define-key map [?x] #'bluetooth-toggle-pairable)
+    (define-key map [?i] #'bluetooth-show-device-info)
+    (define-key map [?k] #'bluetooth-remove-device)    
+    map)
+  "The Bluetooth mode keymap.")
 
 ;;; This function provides the list entries for the tabulated-list
 ;;; view.  It is called from `tabulated-list-print'.
@@ -180,8 +199,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1)
   (bluetooth--make-commands)
-  (define-key bluetooth-mode-map [?i] #'bluetooth-show-device-info)
-  (define-key bluetooth-mode-map [?k] #'bluetooth-remove-device)
   (tabulated-list-init-header))
 
 ;;; This function returns a list of bluetooth adapters and devices
@@ -340,8 +357,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	   (.set `(lambda (arg) (interactive ,(concat "M" .query))
 		    (bluetooth--dbus-set , .set arg , .api)
 		    ,@ .run)))
-	  .docstring)
-	(define-key bluetooth-mode-map .key command)))))
+	  .docstring)))))
 
 (defun bluetooth--display-state ()
   "Get the current adapter state and display it.
