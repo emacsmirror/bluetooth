@@ -7,7 +7,7 @@
 ;; Created: 13 Aug 2019
 ;; Version: 0.1
 ;; Package-Version:
-;; Package-Requires: ((dash) (cl-lib))
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
@@ -390,7 +390,7 @@ This function only uses the first adapter reported by Bluez."
 ;;; key bindings in a hook.
 
 ;;;###autoload
-(defun list-bluetooth-devices ()
+(defun bluetooth-list-devices ()
   "Display a list of Bluetooth devices.
 This function starts Bluetooth mode which offers an interface
 with simple device management functions (e.g. pairing, connecting,
@@ -602,7 +602,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	     (#x8 . ("Toy" . bluetooth--class-toy-minor-classes))
 	     (#x9 . ("Health" . bluetooth--class-health-minor-classes))
 	     (#xf . ("Unspecified" . nil)))))
-  "Bluetooth major device classes")
+  "Bluetooth major device classes.")
 
 (defconst bluetooth--class-computer-minor-classes
   '((name . "minor device class")
@@ -618,7 +618,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	     (#x5 . "Palm-size PC/PDA")
 	     (#x6 . "Wearable computer (watch size)")
 	     (#x7 . "Tablet"))))
-  "Bluetooth computer minor classes")
+  "Bluetooth computer minor classes.")
 
 (defconst bluetooth--class-phone-minor-classes
   '((name . "minor device class")

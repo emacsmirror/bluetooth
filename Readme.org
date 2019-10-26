@@ -18,7 +18,7 @@
 ** Usage
 
    To install it, invoke ~M-x package-install-file~ on  ~bluetooth.el~
-   and then  use it with ~M-x list-bluetooth-devices~.
+   and then  use it with ~M-x bluetooth-list-devices~.
 
    The mode assumes availability of Bluez on D-Bus.  Depending on the system
    configuration, Bluez may use the ~:system~ bus or the ~:session~ bus.  This
