@@ -32,11 +32,11 @@
 ;; This package implements basic Bluetooth management functionality, such as
 ;; connecting and disconnecting devices, setting properties and aliases,
 ;; putting the adapter in discovery mode and controlling its power supply.
-;; It also includes a pairing agent.  No configuration is necessary.
+;; It also includes a pairing agent.
 ;; It uses the Bluez Bluetooth stack on GNU/Linux via the DBus interface.
 ;; Therefore, it requires an Emacs with DBus support compiled-in.
 ;;
-;; To use the package, invoke `list-bluetooth-devices'.
+;; To use the package, invoke `bluetooth-list-devices'.
 
 ;;; Code:
 
@@ -163,7 +163,7 @@ This is usually `:system' if bluetoothd runs as a system service, or
     (define-key map [?D] #'bluetooth-toggle-discoverable)
     (define-key map [?x] #'bluetooth-toggle-pairable)
     (define-key map [?i] #'bluetooth-show-device-info)
-    (define-key map [?k] #'bluetooth-remove-device)    
+    (define-key map [?k] #'bluetooth-remove-device)
     map)
   "The Bluetooth mode keymap.")
 
@@ -526,7 +526,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 						 dbus-service-emacs
 						 bluetooth--own-path
 						 (alist-get :agent
-							    bluetooth--interfaces) 
+							    bluetooth--interfaces)
 						 method (intern fname) t))))
   (dbus-register-service :session dbus-service-emacs)
   (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
