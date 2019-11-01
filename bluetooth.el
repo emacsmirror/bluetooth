@@ -180,6 +180,8 @@ This is usually `:system' if bluetoothd runs as a system service, or
     (define-key map [?x] #'bluetooth-toggle-pairable)
     (define-key map [?i] #'bluetooth-show-device-info)
     (define-key map [?k] #'bluetooth-remove-device)
+    (define-key map [?<] #'bluetooth-beginning-of-list)
+    (define-key map [?>] #'bluetooth-end-of-list)
     map)
   "The Bluetooth mode keymap.")
 
@@ -213,9 +215,10 @@ This is usually `:system' if bluetoothd runs as a system service, or
 For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (setq tabulated-list-format bluetooth--list-format
 	tabulated-list-entries #'bluetooth--list-entries
-	tabulated-list-padding 1)
-  (bluetooth--make-commands)
-  (tabulated-list-init-header))
+	tabulated-list-padding 1
+	tabulated-list-sort-key (cons "Alias" nil))
+  (make-local-variable 'mode-line-misc-info)
+  (cl-pushnew bluetooth--mode-info mode-line-misc-info))
 
 ;;; This function returns a list of bluetooth adapters and devices
 ;;; in the form
@@ -397,6 +400,23 @@ This function only uses the first adapter reported by Bluez."
   "Clean up when mode buffer is killed."
   (bluetooth--unregister-agent))
 
+(defun bluetooth-end-of-list ()
+  "Move cursor to the last list element."
+  (interactive)
+  (let ((column (current-column)))
+    (goto-char (point-max))
+    (forward-line -1)
+    (goto-char (+ (point)
+		  (- column (current-column))))))
+
+(defun bluetooth-beginning-of-list ()
+  "Move cursor to the first list element."
+  (interactive)
+  (let ((column (current-column)))
+    (goto-char (point-min))
+    (goto-char (+ (point)
+		  (- column (current-column))))))
+
 ;;; This command is the main entry point.  It is meant to be called by
 ;;; the user.
 ;;;
@@ -420,11 +440,11 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
     (unless (eq major-mode 'bluetooth-mode)
       (erase-buffer)
       (bluetooth-mode)
+      (bluetooth--make-commands)
       (bluetooth--register-agent)
       (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-      (make-local-variable 'mode-line-misc-info)
-      (cl-pushnew bluetooth--mode-info mode-line-misc-info)
       (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+      (tabulated-list-init-header)
       (tabulated-list-print t)
       (hl-line-mode))))
 

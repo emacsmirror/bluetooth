@@ -46,9 +46,9 @@
     | s           | toggle the power supply of the adapter                                 |
     | n           | next line                                                              |
     | p           | previous line                                                          |
-    | <           | go to the beginning of the buffer                                      |
-    | >           | go to the end of the buffer                                            |
-    | g           | revert the buffer; this queries the bus for accessible devices           |
+    | <           | go to the beginning of the list                                        |
+    | >           | go to the end of the list                                              |
+    | g           | revert the buffer; this queries the bus for accessible devices         |
     | S           | sort list by column at point                                           |
     | h or ?      | describe the mode                                                      |
     | q           | bury the buffer                                                        |
