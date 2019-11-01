@@ -54,7 +54,23 @@
   "D-Bus bus that Bluez is registered on.
 This is usually `:system' if bluetoothd runs as a system service, or
 `:session' if it runs as a user service."
-  :type '(symbol))
+  :type '(symbol)
+  :group 'bluetooth)
+
+(defgroup bluetooth-faces nil
+  "Faces used by Bluetooth mode."
+  :group 'faces)
+
+(defface bluetooth-info-heading
+  '((t . (:foreground "royal blue" :weight bold)))
+  "Face for device info headings."
+  :group 'bluetooth-faces)
+
+(defface bluetooth-info-attribute
+  '((t . (:slant italic)))
+  "Face for device attribute names."
+  :group 'bluetooth-faces)
+
 
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
@@ -1391,42 +1407,52 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 (defun bluetooth-show-device-info ()
   "Show detail information on the device at point."
   (interactive)
-  (let ((dev-id (tabulated-list-get-id)))
-    (when dev-id
-      (bluetooth--with-alias dev-id
-	(with-current-buffer-window
-	 "*Bluetooth device info*" nil nil
-	 (let* ((props (bluetooth--call-method
-			(car (last (split-string dev-id "/"))) :device
-			#'dbus-get-all-properties))
-		(address (cdr (assoc "Address" props)))
-		(rssi (cdr (assoc "RSSI" props)))
-		(class (cdr (assoc "Class" props)))
-		(uuids (cdr (assoc "UUIDs" props))))
-	   (insert "Alias:\t\t" alias "\n")
-	   (when address
-	     (insert "Address:\t" address "\n"))
-	   (when rssi
-	     (insert "RSSI:\t\t" (number-to-string rssi) "\n"))
-	   (when class
-	     (let ((p-class (bluetooth--parse-class class)))
-	       (insert "\nService and device classes:\n")
-	       (mapc (lambda (x)
-		       (insert (car x) ":\n")
-		       (if (listp (cadr x))
-			   (dolist (elt (cadr x))
-			     (insert "\t" elt "\n"))
-			 (insert "\t" (cadr x) "\n")))
-		     p-class)))
-	   (when uuids
-	     (insert "\nServices (UUIDs):\n")
-	     (dolist (id uuids)
-	       (insert (mapconcat #'identity
-				  (or (bluetooth--parse-service-class-uuid id)
-				      (list id))
-				  " -- ")
-		       "\n"))))
-	 (special-mode))))))
+  (cl-flet ((ins-heading (text)
+			 (insert (propertize text 'face
+					     'bluetooth-info-heading)))
+	    (ins-attr (attr value)
+		      (insert (propertize (format "%10s" attr)
+					  'face
+					  'bluetooth-info-attribute))
+		      (insert ": " value "\n")))
+    (let ((dev-id (tabulated-list-get-id)))
+      (when dev-id
+	(bluetooth--with-alias dev-id
+	  (with-current-buffer-window
+	   "*Bluetooth device info*" nil nil
+	   (let ((props (bluetooth--call-method
+			 (car (last (split-string dev-id "/"))) :device
+			 #'dbus-get-all-properties)))
+	     (ins-heading "Bluetooth device info\n\n")
+	     (ins-attr "Alias" alias)
+	     (when-let (address (cdr (assoc "Address" props)))
+	       (ins-attr "Address" address))
+	     (when-let (rssi (cdr (assoc "RSSI" props)))
+	       (ins-attr "RSSI" (number-to-string rssi)))
+	     (when-let (class (cdr (assoc "Class" props)))
+	       (let ((p-class (bluetooth--parse-class class)))
+		 (ins-heading "\nService and device classes\n")
+		 (dolist (x p-class)
+		   (insert (propertize
+			    (format "%s:\n"  (car x))
+			    'face 'bluetooth-info-attribute))
+		   (if (listp (cadr x))
+		       (dolist (elt (cadr x))
+			 (insert (format "%15s %s\n" "" elt)))
+		     (insert (format "%15s %s\n" "" (cadr x)))))))
+	     (when-let (uuids (cdr (assoc "UUIDs" props)))
+	       (ins-heading "\nSerives (UUIDs)\n")
+	       (dolist (id uuids)
+		 (let ((desc (or (bluetooth--parse-service-class-uuid id)
+				 (list id))))
+		   (when (car desc)
+		     (insert (format "%30s  " (car desc))))
+		   (when (cadr desc)
+		     (insert (format "%s " (cadr desc))))
+		   (when (caddr desc)
+		     (insert (format "(%s)" (caddr desc))))
+		   (insert "\n")))))
+	   (special-mode)))))))
 
 (provide 'bluetooth)
 
