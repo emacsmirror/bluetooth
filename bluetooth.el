@@ -71,24 +71,26 @@ This is usually `:system' if bluetoothd runs as a system service, or
   "Face for device attribute names."
   :group 'bluetooth-faces)
 
-
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
 
 (defconst bluetooth--mode-name "Bluetooth" "Pretty print mode name.")
 
-(defconst bluetooth--mode-info '(:eval (bluetooth--display-state))
-  "Mode info list.")
+(defvar bluetooth--mode-info '(:eval (and (eq major-mode 'bluetooth-mode)
+					  (bluetooth--mode-info)))
+  "Mode info display.")
+
+(put 'bluetooth--mode-info 'risky-local-variable t)
 
 ;;; The state information list defines the kind of adapter state displayed
 ;;; in the mode-line.  The first element of a sublist is an adapter property,
 ;;; the second is the displayed string if the property is non-nil and
 ;;; the third is the displayed string if the property is nil.  If a
 ;;; display element is nil, nothing will be displayed for this property.
-(defconst bluetooth--mode-state '(("Powered" nil "off")
-				  ("Discoverable" "discoverable" nil)
-				  ("Pairable" "pairable" nil)
-				  ("Discovering" "scan" nil))
+(defvar bluetooth--mode-state '(("Powered" . (nil nil "off"))
+				("Discoverable" . (nil "discoverable" nil))
+				("Pairable" . (nil "pairable" nil))
+				("Discovering" . (nil "scan" nil)))
   "Mode line adapter state information.")
 
 ;;; Bluez service name as defined by the Bluez API
@@ -103,14 +105,18 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
 
+(defvar bluetooth--adapter-signal nil "D-Bus adapter signal object.")
+
 (eval-and-compile
   (defconst bluetooth--base-uuid "0000-1000-8000-00805f9b34fb"
     "Bluetooth base UUID."))
 
-(defconst bluetooth--interfaces '((:device . "org.bluez.Device1")
-				  (:adapter . "org.bluez.Adapter1")
-				  (:agent-manager . "org.bluez.AgentManager1")
-				  (:agent . "org.bluez.Agent1"))
+(defconst bluetooth--interfaces
+  '((:device . "org.bluez.Device1")
+    (:adapter . "org.bluez.Adapter1")
+    (:agent-manager . "org.bluez.AgentManager1")
+    (:agent . "org.bluez.Agent1")
+    (:properties . "org.freedesktop.DBus.Properties"))
   "Bluez D-Bus interfaces.")
 
 ;;; Default timeout for D-Bus commands
@@ -217,8 +223,9 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1
 	tabulated-list-sort-key (cons "Alias" nil))
-  (make-local-variable 'mode-line-misc-info)
-  (cl-pushnew bluetooth--mode-info mode-line-misc-info))
+  (tabulated-list-init-header)
+  (tabulated-list-print)
+  (hl-line-mode))
 
 ;;; This function returns a list of bluetooth adapters and devices
 ;;; in the form
@@ -378,7 +385,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 		    ,@ .run)))
 	  .docstring)))))
 
-(defun bluetooth--display-state ()
+(defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
   (let* ((adapters (dbus-introspect-get-node-names
@@ -388,17 +395,19 @@ This function only uses the first adapter reported by Bluez."
 						(car adapters))
 					(alist-get :adapter
 						   bluetooth--interfaces)))
-	 (info (mapconcat #'identity
-			  (-keep (lambda (x) (if (cdr (assoc (car x) resp))
-						 (cadr x) (caddr x)))
-				 bluetooth--mode-state)
-			  ",")))
-    (unless (string-blank-p info)
-      (concat "[" info "] "))))
+	 (info (mapcar (lambda (elt)
+			 (list (car elt) (list (cdr (assoc (car elt) resp)))))
+		       bluetooth--mode-state)))
+    (bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
+    				   info)))
 
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
-  (bluetooth--unregister-agent))
+  (bluetooth--unregister-agent)
+  (setq mode-line-misc-info
+	(cl-remove bluetooth--mode-info mode-line-misc-info))
+  (ignore-errors
+    (dbus-unregister-object bluetooth--adapter-signal)))
 
 (defun bluetooth-end-of-list ()
   "Move cursor to the last list element."
@@ -417,6 +426,42 @@ This function only uses the first adapter reported by Bluez."
     (goto-char (+ (point)
 		  (- column (current-column))))))
 
+(defun bluetooth--mode-info ()
+  "Update the mode info display."
+  (let ((info (mapconcat #'identity
+			 (-keep (lambda (x) (if (cadr x)
+					   (caddr x) (cadddr x)))
+				bluetooth--mode-state)
+			 ",")))
+    (unless (string-blank-p info)
+      (concat " [" info "] "))))
+
+(defun bluetooth--handle-prop-change (interface data &rest _)
+  "Handle Bluetooth adapter property signals."
+  (when (string= interface (alist-get :adapter bluetooth--interfaces))
+    (dolist (elt data)
+      (let ((prop (car elt))
+	    (value (caadr elt)))
+	(when-let (state (cdr (assoc prop bluetooth--mode-state)))
+	  (setcar state value))))))
+
+(defun bluetooth--register-signal-handler ()
+  "Register signal handler for adapter property changes."
+  (let ((adapters (dbus-introspect-get-node-names
+		   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
+    (setq bluetooth--adapter-signal
+	  (dbus-register-signal bluetooth-bluez-bus
+				nil
+				(concat bluetooth--root "/"
+					(car adapters))
+				(alist-get :properties
+					   bluetooth--interfaces)
+				"PropertiesChanged"
+				#'bluetooth--handle-prop-change
+				:arg-namespace
+				(alist-get :adapter
+					   bluetooth--interfaces)))))
+
 ;;; This command is the main entry point.  It is meant to be called by
 ;;; the user.
 ;;;
@@ -424,7 +469,6 @@ This function only uses the first adapter reported by Bluez."
 ;;; as specified in `bluetooth--commands'.  If you want to have
 ;;; different key bindings, either edit this variable or change the
 ;;; key bindings in a hook.
-
 ;;;###autoload
 (defun bluetooth-list-devices ()
   "Display a list of Bluetooth devices.
@@ -442,11 +486,11 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
       (bluetooth-mode)
       (bluetooth--make-commands)
       (bluetooth--register-agent)
+      (cl-pushnew bluetooth--mode-info mode-line-misc-info)
       (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
       (setq imenu-create-index-function #'bluetooth--create-imenu-index)
-      (tabulated-list-init-header)
-      (tabulated-list-print t)
-      (hl-line-mode))))
+      (bluetooth--initialize-mode-info)
+      (bluetooth--register-signal-handler))))
 
 ;;; Bluetooth pairing agent code
 
