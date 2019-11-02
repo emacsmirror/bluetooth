@@ -1430,14 +1430,11 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (cl-flet ((ins-heading (text)
 			 (insert (propertize text 'face
 					     'bluetooth-info-heading)))
-	    (ins-attr (attr value &optional unit)
+	    (ins-attr (attr value)
 		      (insert (propertize (format "%15s" attr)
 					  'face
 					  'bluetooth-info-attribute))
-		      (insert ": " value)
-		      (when unit
-			(insert " " unit))
-		      (insert "\n")))
+		      (insert ": " value "\n")))
     (let ((dev-id (tabulated-list-get-id)))
       (when dev-id
 	(bluetooth--with-alias dev-id
@@ -1452,12 +1449,15 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	       (ins-attr "Address" address))
 	     (when-let (addr-type (cdr (assoc "AddressType" props)))
 	       (ins-attr "Address type" addr-type))
-	     (when-let (rssi (cdr (assoc "RSSI" props)))
-	       (ins-attr "RSSI" (number-to-string rssi) "dBm"))
-	     (when-let (tx-power (cdr (assoc "TxPower" props)))
-	       (ins-attr "Tx Power" (number-to-string tx-power) "dBm"))
+	     (let ((rssi (cdr (assoc "RSSI" props)))
+		   (tx-power (cdr (assoc "TxPower" props))))
+	       (when rssi
+		 (ins-attr "RSSI" (format "%4d dBm" rssi)))
+	       (when tx-power
+		 (ins-attr "Tx Power" (format "%4d dBm" tx-power)))
+	       (when (and rssi tx-power)
+		 (ins-attr "Path loss" (format "%4d dB" (- tx-power rssi)))))
 	     (when-let (mf-info (cadr (assoc "ManufacturerData" props)))
-	       (message "%S" mf-info)
 	       (ins-attr "Manufacturer" (bluetooth--manufacturer
 					 (car mf-info))))
 	     (when-let (class (cdr (assoc "Class" props)))
