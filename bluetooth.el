@@ -26,15 +26,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 ;;; Commentary:
 
 ;; This package implements basic Bluetooth management functionality, such as
 ;; connecting and disconnecting devices, setting properties and aliases,
 ;; putting the adapter in discovery mode and controlling its power supply.
 ;; It also includes a pairing agent.
-;; It uses the Bluez Bluetooth stack on GNU/Linux via the DBus interface.
-;; Therefore, it requires an Emacs with DBus support compiled-in.
+;; It uses the Bluez Bluetooth stack on GNU/Linux via the D-Bus interface.
+;; Therefore, it requires an Emacs with D-Bus support compiled-in.
 ;;
 ;; To use the package, invoke `bluetooth-list-devices'.
 
@@ -84,8 +83,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 ;;; The state information list defines the kind of adapter state displayed
 ;;; in the mode-line.  The first element of a sublist is an adapter property,
-;;; the second is the displayed string if the property is non-nil and
-;;; the third is the displayed string if the property is nil.  If a
+;;; the second is a list containing first the current status of the item (t/nil),
+;;; second the displayed string if the property is non-nil and
+;;; third the displayed string if the property is nil.  If a
 ;;; display element is nil, nothing will be displayed for this property.
 (defvar bluetooth--mode-state '(("Powered" . (nil nil "off"))
 				("Discoverable" . (nil "discoverable" nil))
@@ -103,8 +103,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defconst bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
 
+;;; these two variables hold D-Bus objects to allow clean-up in
+;;; the kill-buffer-hook
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
-
 (defvar bluetooth--adapter-signal nil "D-Bus adapter signal object.")
 
 (eval-and-compile
@@ -250,12 +251,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
   [("Alias" 30 t) ("Paired" 6 t) ("Connected" 9 t) ("Address" 17 t)
    ("Blocked" 7 t) ("Trusted" 7 t)] "The list view format for bluetooth mode.")
 
-;;; This defines the major mode.
 (define-derived-mode bluetooth-mode tabulated-list-mode
   bluetooth--mode-name
-  "Major mode for managing Bluetooth devices.
-
-For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
+  "Major mode for managing Bluetooth devices."
   (setq tabulated-list-format bluetooth--list-format
 	tabulated-list-entries #'bluetooth--list-entries
 	tabulated-list-padding 1
@@ -267,15 +265,13 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 ;;; Build up the index for Imenu.  This function is used as
 ;;; `imenu-create-index-function'.
 (defun bluetooth--create-imenu-index ()
-  "Create the index for Imenu."
+  "Create the Bluetooth device index for Imenu."
   (goto-char (point-min))
   (cl-loop for (pos entry) = (list (point) (tabulated-list-get-entry))
 	   while entry
 	   do (forward-line 1)
 	   collect (cons (elt entry 0) pos)))
 
-;;; This function calls FUNCTION with ARGS given the device-id DEV-ID and
-;;; Bluez API.  This is used on D-Bus functions.
 (defun bluetooth--call-method (dev-id api function &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((path (cond ((and (eq :device api)
@@ -298,7 +294,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 ;;; The following functions are the workers for the commands.
 ;;; They are used by `bluetooth--make-commands'.
 
-;;; Invoke a D-Bus method with or without parameters.
 (defun bluetooth--dbus-method (method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
   (let ((dev-id (tabulated-list-get-id)))
@@ -306,7 +301,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	   #'dbus-call-method-asynchronously method
 	   #'bluetooth--update-list :timeout bluetooth--timeout args)))
 
-;;; Toggle a property.
 (defun bluetooth--dbus-toggle (property api)
   "Toggle boolean PROPERTY on D-Bus API."
   (let* ((dev-id (tabulated-list-get-id))
@@ -316,7 +310,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 			    (not value))
     (bluetooth--update-list)))
 
-;;; Set a property.
 (defun bluetooth--dbus-set (property arg api)
   "Set PROPERTY to ARG on D-Bus API."
   (let ((dev-id (tabulated-list-get-id)))
@@ -362,12 +355,12 @@ This function only uses the first adapter reported by Bluez."
     (bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
     				   info)))
 
-;;; This function is registered as a kill-buffer-hook, so we don't
-;;; want any errors get in the way of killing the buffer
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
   (setq mode-line-misc-info
 	(cl-remove bluetooth--mode-info mode-line-misc-info))
+  ;; This function is registered as a kill-buffer-hook, so we don't
+  ;; want any errors to get in the way of killing the buffer
   (ignore-errors
     (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		      (alist-get :agent-manager bluetooth--interfaces)
@@ -377,7 +370,7 @@ This function only uses the first adapter reported by Bluez."
     (dbus-unregister-object bluetooth--adapter-signal)))
 
 (defun bluetooth-remove-device ()
-  "Remove Bluetooth device at point."
+  "Remove Bluetooth device at point (unpaires device and host)."
   (interactive)
   (let ((dev-id (tabulated-list-get-id)))
     (when dev-id
@@ -406,6 +399,8 @@ This function only uses the first adapter reported by Bluez."
     (goto-char (+ (point)
 		  (- column (current-column))))))
 
+;;; This function is called from Emacs's mode-line update code
+;;; and must not contain any calls to D-Bus functions.
 (defun bluetooth--mode-info ()
   "Update the mode info display."
   (let ((info (mapconcat #'identity
@@ -416,8 +411,11 @@ This function only uses the first adapter reported by Bluez."
     (unless (string-blank-p info)
       (concat " [" info "] "))))
 
+;;; This D-Bus signal handler listens to property changes of the
+;;; adapter and updates the status display accordingly.
 (defun bluetooth--handle-prop-change (interface data &rest _)
-  "Handle Bluetooth adapter property signals."
+  "Handle property change signals on D-Bus INTERFACE as given by DATA.
+Only adapter properties are considered."
   (when (string= interface (alist-get :adapter bluetooth--interfaces))
     (dolist (elt data)
       (let ((prop (car elt))
@@ -425,10 +423,13 @@ This function only uses the first adapter reported by Bluez."
 	(when-let (state (cdr (assoc prop bluetooth--mode-state)))
 	  (setcar state value))))))
 
+;;; This function registers a signal handler for the _first_ adapter
+;;; reported by Bluez.
 (defun bluetooth--register-signal-handler ()
   "Register signal handler for adapter property changes."
-  (let ((adapters (dbus-introspect-get-node-names
-		   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
+  (let ((adapters (dbus-introspect-get-node-names bluetooth-bluez-bus
+						  bluetooth--service
+						  bluetooth--root)))
     (setq bluetooth--adapter-signal
 	  (dbus-register-signal bluetooth-bluez-bus
 				nil
@@ -442,21 +443,12 @@ This function only uses the first adapter reported by Bluez."
 				(alist-get :adapter
 					   bluetooth--interfaces)))))
 
-;;; This command is the main entry point.  It is meant to be called by
-;;; the user.
-;;;
-;;; Note that this command will redefine the commands and key bindings
-;;; as specified in `bluetooth--commands'.  If you want to have
-;;; different key bindings, either edit this variable or change the
-;;; key bindings in a hook.
 ;;;###autoload
 (defun bluetooth-list-devices ()
   "Display a list of Bluetooth devices.
 This function starts Bluetooth mode which offers an interface
-with simple device management functions (e.g. pairing, connecting,
-scanning the bus etc.)
-
-For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
+offering device management functions, e.g. pairing, connecting,
+scanning the bus, displaying device info etc."
   (interactive)
   ;; make sure D-Bus is (made) available
   (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
@@ -474,8 +466,10 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 
 ;;; Bluetooth pairing agent code
 
+;;; The release function is not needed at the moment, but needs
+;;; to be implemented for the agent API.
 (defun bluetooth--release ()
-  "Agent release method.")
+  "Clean up after Bluetooth agent release.")
 
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
@@ -569,7 +563,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 ;;; This procedure registers the pairing agent.
 (defun bluetooth--register-agent ()
   "Register as a pairing agent."
-  ;; register all the methods
   (save-match-data
     (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
 		     "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
@@ -585,16 +578,15 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 		     collect (dbus-register-method bluetooth-bluez-bus
 						   dbus-service-emacs
 						   bluetooth--own-path
-						   (alist-get :agent
-							      bluetooth--interfaces)
+						   (alist-get
+						    :agent
+						    bluetooth--interfaces)
 						   method (intern fname) t)))))
   (dbus-register-service :session dbus-service-emacs)
   (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		    (alist-get :agent-manager bluetooth--interfaces)
 		    "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
-
-;;; Application layer
 
 ;;; The following constants define the meaning of the Bluetooth
 ;;; CLASS property, which is made up of a number of fields.
@@ -615,7 +607,8 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 ;;; DATA: the data passed to the parsing (FN) or NEXT functions
 ;;;
 ;;; The information used in all the following lists has been taken
-;;; from the Bluetooth website: https://www.bluetooth.com/
+;;; from the Bluetooth website:
+;;; https://www.bluetooth.com/specifications/assigned-numbers/
 (defconst bluetooth--class-major-services
   '((name . "major service classes")
     (mask . #xffe000)
@@ -1452,7 +1445,7 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (symbol-value (cdr (alist-get field data))))
 
 (defun bluetooth-show-device-info ()
-  "Show detail information on the device at point."
+  "Show detailed information on the device at point."
   (interactive)
   (cl-flet ((ins-heading (text)
 			 (insert (propertize text 'face
@@ -1513,9 +1506,8 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 		   (insert "\n")))))
 	   (special-mode)))))))
 
-
 ;;; Very long list of manufacturer IDs.
-;;; Last updated: 02. Nov 2019
+;;; Last updated: 05. Nov 2019
 (defconst bluetooth--manufacturer-ids
   #s(hash-table
      size 500 data
@@ -3618,7 +3610,10 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
       #x0830 "Core Health and Fitness LLC"
       #x0831 "Foxble, LLC"
       #x0832 "Intermotive,Inc."
-      #x0833 "Conneqtech B.V."))
+      #x0833 "Conneqtech B.V."
+      #x0834 "RIKEN KEIKI CO., LTD."
+      #x0835 "Canopy Growth Corporation"
+      #x0836 "Bitwards Oy"))
   "Bluetooth manufacturer IDs.")
 
 (provide 'bluetooth)
