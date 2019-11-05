@@ -191,15 +191,52 @@ This is usually `:system' if bluetoothd runs as a system service, or
     map)
   "The Bluetooth mode keymap.")
 
+;;; This function returns a list of bluetooth adapters and devices
+;;; in the form
+;;; (("hci0"
+;;;   ("dev_78_AB_BB_DA_6C_7E" "dev_90_F1_AA_06_24_72")))
+;;;
+;;; The first element of each (sub-) list is an adapter name, followed
+;;; by a list of devices known to this adapter.
+(defun bluetooth--get-devices ()
+  "Return a list of bluetooth adapters and devices connected to them."
+  (mapcar (lambda (a)
+	    (list a (dbus-introspect-get-node-names
+		     bluetooth-bluez-bus bluetooth--service
+		     (concat bluetooth--root "/" a))))
+	  (dbus-introspect-get-node-names
+	   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
+
+(defun bluetooth--dev-state (key device)
+  "Return state information regarding KEY for DEVICE."
+  (let ((value (cdr (assoc key (cadr device)))))
+    (cond ((stringp value) value)
+	  ((null value) "no")
+	  (t "yes"))))
+
 ;;; This function provides the list entries for the tabulated-list
 ;;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
   (setq bluetooth--device-info
-	(bluetooth--get-device-info (bluetooth--get-devices)))
-  (bluetooth--compile-list-entries bluetooth--device-info))
+	(mapcan
+	 (lambda (devlist)
+	   (cl-loop for dev in (cadr devlist)
+		    for path = (mapconcat #'identity
+					  (list bluetooth--root (car devlist) dev)
+					  "/")
+		    collect (cons dev (list (dbus-get-all-properties
+					     bluetooth-bluez-bus
+					     bluetooth--service path
+					     (alist-get :device
+							bluetooth--interfaces))))))
+	 (bluetooth--get-devices)))
+  (mapcar (lambda (dev)
+	    (list (car dev)
+		  (cl-map 'vector (lambda (key) (bluetooth--dev-state key dev))
+			  (mapcar #'car bluetooth--list-format))))
+	  bluetooth--device-info))
 
-;;; This function updates the list view.
 (defun bluetooth--update-list ()
   "Update the list view."
   (with-current-buffer bluetooth-buffer-name
@@ -227,69 +264,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
   (tabulated-list-print)
   (hl-line-mode))
 
-;;; This function returns a list of bluetooth adapters and devices
-;;; in the form
-;;; (("hci0"
-;;;   ("dev_78_AB_BB_DA_6C_7E" "dev_90_F1_AA_06_24_72")))
-;;;
-;;; The first element of each (sub-) list is an adapter name, followed
-;;; by a list of devices known to this adapter.
-(defun bluetooth--get-devices ()
-  "Return a list of bluetooth adapters and devices connected to them."
-  (mapcar (lambda (a)
-	    (list a (dbus-introspect-get-node-names
-		     bluetooth-bluez-bus bluetooth--service
-		     (concat bluetooth--root "/" a))))
-	  (dbus-introspect-get-node-names
-	   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
-
-;;; Given a device list as obtained from `bluetooth--get-devices'
-;;; this function gathers all the properties of each device.
-;;; The data is returned in the following structure (alist of alists):
-;;;
-;; (("dev_78_AB_BB_DA_6C_7E"
-;;   (("Address" . "78:AB:BB:DA:6C:7E")
-;;    ("AddressType" . "public")
-;;    ...
-;;    ("ServicesResolved")))
-;;  ("dev_90_F1_AA_06_24_72"
-;;   (("Address" . "90:F1:AA:06:24:72")
-;;    ("AddressType" . "public")
-;;    ...
-;;    ("ServicesResolved"))))
-;;
-(defun bluetooth--get-device-info (devices)
-  "Return a list with information about DEVICES."
-  (mapcan
-   (lambda (devlist)
-     (cl-loop for dev in (cadr devlist)
-	      for path = (mapconcat #'identity
-				    (list bluetooth--root (car devlist) dev)
-				    "/")
-	      collect (cons dev (list (dbus-get-all-properties
-				       bluetooth-bluez-bus
-				       bluetooth--service path
-				       (alist-get :device
-						  bluetooth--interfaces))))))
-   devices))
-
-(defun bluetooth--dev-state (key device)
-  "Return state information regarding KEY for DEVICE."
-  (let ((value (cdr (assoc key (cadr device)))))
-    (cond ((stringp value) value)
-	  ((eq nil value) "no")
-	  (t "yes"))))
-
-;;; This function compiles a list of device information in the
-;;; format needed by `tabulated-list-print'.
-(defun bluetooth--compile-list-entries (device-info)
-  "Compile list entries based on previously gathered DEVICE-INFO."
-  (mapcar (lambda (dev)
-	    (list (car dev)
-		  (cl-map 'vector (lambda (key) (bluetooth--dev-state key dev))
-			  (mapcar #'car bluetooth--list-format))))
-	  device-info))
-
 ;;; Build up the index for Imenu.  This function is used as
 ;;; `imenu-create-index-function'.
 (defun bluetooth--create-imenu-index ()
@@ -299,19 +273,6 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 	   while entry
 	   do (forward-line 1)
 	   collect (cons (elt entry 0) pos)))
-
-(defun bluetooth-remove-device ()
-  "Remove Bluetooth device at point."
-  (interactive)
-  (let ((dev-id (tabulated-list-get-id)))
-    (when dev-id
-      (bluetooth--call-method dev-id
-			      :adapter
-			      #'dbus-call-method-asynchronously
-			      "RemoveDevice"
-			      #'bluetooth--update-list
-			      :timeout bluetooth--timeout
-			      :object-path :path-devid))))
 
 ;;; This function calls FUNCTION with ARGS given the device-id DEV-ID and
 ;;; Bluez API.  This is used on D-Bus functions.
@@ -401,13 +362,32 @@ This function only uses the first adapter reported by Bluez."
     (bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
     				   info)))
 
+;;; This function is registered as a kill-buffer-hook, so we don't
+;;; want any errors get in the way of killing the buffer
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
-  (bluetooth--unregister-agent)
   (setq mode-line-misc-info
 	(cl-remove bluetooth--mode-info mode-line-misc-info))
   (ignore-errors
+    (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
+		      (alist-get :agent-manager bluetooth--interfaces)
+		      "UnregisterAgent"
+		      :object-path bluetooth--own-path)
+    (mapc #'dbus-unregister-object bluetooth--method-objects)
     (dbus-unregister-object bluetooth--adapter-signal)))
+
+(defun bluetooth-remove-device ()
+  "Remove Bluetooth device at point."
+  (interactive)
+  (let ((dev-id (tabulated-list-get-id)))
+    (when dev-id
+      (bluetooth--call-method dev-id
+			      :adapter
+			      #'dbus-call-method-asynchronously
+			      "RemoveDevice"
+			      #'bluetooth--update-list
+			      :timeout bluetooth--timeout
+			      :object-path :path-devid))))
 
 (defun bluetooth-end-of-list ()
   "Move cursor to the last list element."
@@ -578,50 +558,41 @@ For documentation, see URL `https://gitlab.com/rstocker/emacs-bluetooth'."
 		 p-uuid alias)))))
   :ignore)
 
+;;; This function usually gets called (from D-Bus) while we are
+;;; in the minibuffer trying to read a passkey or PIN.  Tha call to
+;;; `keyboard-quit' is used to break out of there.
 (defun bluetooth--cancel ()
   "Cancel a pairing process."
   (keyboard-quit)
   (message "Pairing canceled"))
-
-(defconst bluetooth--methods
-  '("Release" "RequestPinCode" "DisplayPinCode" "RequestPasskey"
-    "DisplayPasskey" "RequestConfirmation" "RequestAuthorization"
-    "AuthorizeService" "Cancel")
-  "D-Bus method names for the agent interface.")
 
 ;;; This procedure registers the pairing agent.
 (defun bluetooth--register-agent ()
   "Register as a pairing agent."
   ;; register all the methods
   (save-match-data
-    (setq bluetooth--method-objects
-	  (cl-loop for method in bluetooth--methods
-		   with case-fold-search = nil
-		   for fname = (concat "bluetooth-"
-				       (replace-regexp-in-string
-					"[A-Z][a-z]+"
-					(lambda (x) (concat "-" (downcase x)))
-					method t))
-		   collect (dbus-register-method bluetooth-bluez-bus
-						 dbus-service-emacs
-						 bluetooth--own-path
-						 (alist-get :agent
-							    bluetooth--interfaces)
-						 method (intern fname) t))))
+    (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
+		     "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
+		     "RequestAuthorization" "AuthorizeService" "Cancel")))
+      (setq bluetooth--method-objects
+	    (cl-loop for method in methods
+		     with case-fold-search = nil
+		     for fname = (concat "bluetooth-"
+					 (replace-regexp-in-string
+					  "[A-Z][a-z]+"
+					  (lambda (x) (concat "-" (downcase x)))
+					  method t))
+		     collect (dbus-register-method bluetooth-bluez-bus
+						   dbus-service-emacs
+						   bluetooth--own-path
+						   (alist-get :agent
+							      bluetooth--interfaces)
+						   method (intern fname) t)))))
   (dbus-register-service :session dbus-service-emacs)
   (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		    (alist-get :agent-manager bluetooth--interfaces)
 		    "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
-
-(defun bluetooth--unregister-agent ()
-  "Unregister the pairing agent."
-  (ignore-errors
-    (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
-		      (alist-get :agent-manager bluetooth--interfaces)
-		      "UnregisterAgent"
-		      :object-path bluetooth--own-path)
-    (mapc #'dbus-unregister-object bluetooth--method-objects)))
 
 ;;; Application layer
 
