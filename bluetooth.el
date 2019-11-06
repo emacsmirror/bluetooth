@@ -1,24 +1,23 @@
 ;;; bluetooth.el --- A Major mode for Bluetooth devices -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Raffael Stocker
+;; Copyright (C) 2019 Free Software Foundation, Inc.
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
 ;; Version: 0.1
-;; Package-Version:
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: hardware
-;; URL: https://gitlab.com/rstocker/emacs-bluetooth
+;; URL: https://elpa.gnu.org/packages/bluetooth
 
-;; This file is NOT part of GNU Emacs
+;; This file is part of GNU Emacs
 
-;; This program is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or (at
 ;; your option) any later version.
 
-;; This program is distributed in the hope that it will be useful, but
+;; GNU Emacs is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
