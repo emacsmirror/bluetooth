@@ -6,7 +6,7 @@
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
 ;; Version: 0.1
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware
 ;; URL: https://elpa.gnu.org/packages/bluetooth
 
@@ -52,8 +52,7 @@
   "D-Bus bus that Bluez is registered on.
 This is usually `:system' if bluetoothd runs as a system service, or
 `:session' if it runs as a user service."
-  :type '(symbol)
-  :group 'bluetooth)
+  :type '(symbol))
 
 (defgroup bluetooth-faces nil
   "Faces used by Bluetooth mode."
@@ -61,21 +60,19 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 (defface bluetooth-info-heading
   '((t . (:foreground "royal blue" :weight bold)))
-  "Face for device info headings."
-  :group 'bluetooth-faces)
+  "Face for device info headings.")
 
 (defface bluetooth-info-attribute
   '((t . (:slant italic)))
-  "Face for device attribute names."
-  :group 'bluetooth-faces)
+  "Face for device attribute names.")
 
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
 
 (defconst bluetooth--mode-name "Bluetooth" "Pretty print mode name.")
 
-(defvar bluetooth--mode-info '(:eval (and (eq major-mode 'bluetooth-mode)
-					  (bluetooth--mode-info)))
+(defvar bluetooth--mode-info
+  '(:eval (bluetooth--mode-info))
   "Mode info display.")
 
 (put 'bluetooth--mode-info 'risky-local-variable t)
@@ -125,50 +122,57 @@ This is usually `:system' if bluetoothd runs as a system service, or
 ;;; This variable holds the device information as obtained from D-Bus.
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
-;;; This alist specifies all the commands. The format is as follows:
-;;;
-;;; command . COMMAND specifies the command name
-;;; method . "Method" specifies a D-Bus method "Method"
-;;; toggle . "Tprop" specifies a D-Bus property "Tprop" that is toggled
-;;; by the command
-;;; set . "Prop" specifies a D-Bus property "Prop" that can be set by
-;;; the command
-;;; query . "Query" specifies a query issued in the minibuffer; this
-;;; makes sense only if `set' is also specified
-;;; api . [:device|:adapter] specifies the Bluez API to be used
-;;; for the D-Bus command
-;;; args . ARG-LIST adds ARG-LIST to the D-Bus method invocation; the
-;;; ARG-LIST will be spliced and evaluated before the method call
-;;;    The following special keywords are interpreted:
-;;;    :path-devid replace by full object path
-;;;                (e.g. "/org/bluez/hci0/dev_...")
-;;; run . (FORM) runs the lisp FORM after the D-Bus command
-;;; docstring . "STRING" adds STRING as documentation to the command
-(defconst bluetooth--commands
-  '(((command . connect) (method . "Connect") (api . :device)
-     (docstring . "Connect to the Bluetooth device at point."))
-    ((command . disconnect) (method . "Disconnect")
-     (api . :device) (docstring . "Disconnect Bluetooth device at point."))
-    ((command . toggle-blocked) (toggle . "Blocked")
-     (api . :device) (docstring . "Mark Bluetooth device at point blocked."))
-    ((command . toggle-trusted) (toggle . "Trusted")
-     (api . :device) (docstring . "Mark Bluetooth device at point trusted."))
-    ((command . set-alias) (set . "Alias")
-     (query . "Alias (empty to reset): ") (api . :device)
-     (docstring . "Set alias of Bluetooth device at point."))
-    ((command . start-discovery) (method . "StartDiscovery")
-     (api . :adapter) (docstring . "Start discovery mode."))
-    ((command . stop-discovery) (method . "StopDiscovery")
-     (api . :adapter) (docstring . "Stop discovery mode."))
-    ((command . toggle-power) (toggle . "Powered")
-     (api . :adapter) (docstring . "Toggle power supply of adapter."))
-    ((command . pair) (method . "Pair")
-     (api . :device) (docstring . "Pair with a device."))
-    ((command . toggle-discoverable) (toggle . "Discoverable")
-     (api . :adapter) (docstring . "Toggle discoverable mode."))
-    ((command . toggle-pairable) (toggle . "Pairable")
-     (api . :adapter) (docstring . "Toggle pairable mode.")))
-  "Bluetooth command definitions.")
+(eval-when-compile
+  (defun bluetooth--function-name (name &optional prefix)
+    "Make a function name out of NAME and PREFIX.
+The generated function name has the form `bluetoothPREFIX-NAME'."
+    (save-match-data
+      (concat "bluetooth"
+	      prefix
+	      (replace-regexp-in-string "[A-Z][a-z]+"
+					(lambda (x) (concat "-" (downcase x)))
+					name t)))))
+
+(defmacro bluetooth-defun-method (method api docstring)
+  (declare (doc-string 3) (indent 3))
+  (let ((name (bluetooth--function-name method)))
+    `(defun ,(intern name) () ,docstring
+	    (interactive)
+	    (bluetooth--dbus-method ,method ,api))))
+
+(bluetooth-defun-method "Connect" :device
+			"Connect to the Bluetooth device at point.")
+(bluetooth-defun-method "Disconnect" :device
+			"Disconnect Bluetooth device at point.")
+(bluetooth-defun-method "StartDiscovery" :adapter
+			"Start discovery mode.")
+(bluetooth-defun-method "StopDiscovery" :adapter
+			"Stop discovery mode.")
+(bluetooth-defun-method "Pair" :device
+			"Pair with device at point.")
+
+(defmacro bluetooth-defun-toggle (property api docstring)
+  (declare (doc-string 3) (indent 3))
+  (let ((name (bluetooth--function-name property "-toggle")))
+    `(defun ,(intern name) () ,docstring
+	    (interactive)
+	    (bluetooth--dbus-toggle ,property ,api))))
+
+(bluetooth-defun-toggle "Blocked" :device
+			"Mark Bluetooth device at point blocked.")
+(bluetooth-defun-toggle "Trusted" :device
+			"Mark Bluetooth device at point trusted.")
+(bluetooth-defun-toggle "Powered" :adapter
+			"Toggle power supply of adapter.")
+(bluetooth-defun-toggle "Discoverable" :adapter
+			"Toggle discoverable mode.")
+(bluetooth-defun-toggle "Pairable" :adapter
+			"Toggle pairable mode.")
+
+(defun bluetooth-set-alias (name)
+  "Set alias of Bluetooth device at point."
+  (interactive "MAlias (empty to reset): ")
+  (bluetooth--dbus-set "Alias" name :device))
 
 (defvar bluetooth-mode-map
   (let ((map (make-sparse-keymap)))
@@ -180,7 +184,7 @@ This is usually `:system' if bluetoothd runs as a system service, or
     (define-key map [?a] #'bluetooth-set-alias)
     (define-key map [?r] #'bluetooth-start-discovery)
     (define-key map [?R] #'bluetooth-stop-discovery)
-    (define-key map [?s] #'bluetooth-toggle-power)
+    (define-key map [?s] #'bluetooth-toggle-powered)
     (define-key map [?P] #'bluetooth-pair)
     (define-key map [?D] #'bluetooth-toggle-discoverable)
     (define-key map [?x] #'bluetooth-toggle-pairable)
@@ -214,6 +218,13 @@ This is usually `:system' if bluetoothd runs as a system service, or
 	  ((null value) "no")
 	  (t "yes"))))
 
+;;; List format for the main display buffer.
+;;; NOTE: the strings MUST correspond to Bluez device properties
+;;; as they are used to gather the information from Bluez.
+(defconst bluetooth--list-format
+  [("Alias" 30 t) ("Paired" 6 t) ("Connected" 9 t) ("Address" 17 t)
+   ("Blocked" 7 t) ("Trusted" 7 t)] "The list view format for bluetooth mode.")
+
 ;;; This function provides the list entries for the tabulated-list
 ;;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
@@ -241,14 +252,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
   "Update the list view."
   (with-current-buffer bluetooth-buffer-name
     (tabulated-list-print t)
-    (hl-line-highlight)))
-
-;;; List format for the main display buffer.
-;;; NOTE: the strings MUST correspond to Bluez device properties
-;;; as they are used to gather the information from Bluez.
-(defconst bluetooth--list-format
-  [("Alias" 30 t) ("Paired" 6 t) ("Connected" 9 t) ("Address" 17 t)
-   ("Blocked" 7 t) ("Trusted" 7 t)] "The list view format for bluetooth mode.")
+    (and (fboundp 'hl-line-highlight)
+	 (bound-and-true-p hl-line-mode)
+	 (hl-line-highlight))))
 
 (define-derived-mode bluetooth-mode tabulated-list-mode
   bluetooth--mode-name
@@ -317,27 +323,6 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 ;;; end of worker function definitions
 
-;;; This function generates all the commands.
-;;; NOTE: The spaces after the unquotes are necessary for let-alist to expand
-;;; the dotted names.
-(defun bluetooth--make-commands ()
-  "Generate the commands specified in `bluetooth--commands'."
-  (dolist (cmd bluetooth--commands)
-    (let-alist cmd
-      (let ((command (intern (concat "bluetooth-" (symbol-name .command)))))
-	(defalias command
-	  (cond
-	   (.method `(lambda () (interactive)
-		       (bluetooth--dbus-method , .method , .api ,@ .args)
-		       ,@ .run))
-	   (.toggle `(lambda () (interactive)
-		       (let ((value (bluetooth--dbus-toggle , .toggle , .api)))
-			 ,@ .run)))
-	   (.set `(lambda (arg) (interactive ,(concat "M" .query))
-		    (bluetooth--dbus-set , .set arg , .api)
-		    ,@ .run)))
-	  .docstring)))))
-
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
@@ -352,7 +337,7 @@ This function only uses the first adapter reported by Bluez."
 			 (list (car elt) (list (cdr (assoc (car elt) resp)))))
 		       bluetooth--mode-state)))
     (bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
-    				   info)))
+				   info)))
 
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
@@ -408,7 +393,7 @@ This function only uses the first adapter reported by Bluez."
 				bluetooth--mode-state)
 			 ",")))
     (unless (string-blank-p info)
-      (concat " [" info "] "))))
+      (concat " [" info "]"))))
 
 ;;; This D-Bus signal handler listens to property changes of the
 ;;; adapter and updates the status display accordingly.
@@ -452,12 +437,11 @@ scanning the bus, displaying device info etc."
   ;; make sure D-Bus is (made) available
   (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
   (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-    (unless (eq major-mode 'bluetooth-mode)
+    (unless (derived-mode-p 'bluetooth-mode)
       (erase-buffer)
       (bluetooth-mode)
-      (bluetooth--make-commands)
       (bluetooth--register-agent)
-      (cl-pushnew bluetooth--mode-info mode-line-misc-info)
+      (cl-pushnew bluetooth--mode-info mode-line-process)
       (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
       (setq imenu-create-index-function #'bluetooth--create-imenu-index)
       (bluetooth--initialize-mode-info)
@@ -562,25 +546,20 @@ scanning the bus, displaying device info etc."
 ;;; This procedure registers the pairing agent.
 (defun bluetooth--register-agent ()
   "Register as a pairing agent."
-  (save-match-data
-    (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
-		     "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
-		     "RequestAuthorization" "AuthorizeService" "Cancel")))
-      (setq bluetooth--method-objects
-	    (cl-loop for method in methods
-		     with case-fold-search = nil
-		     for fname = (concat "bluetooth-"
-					 (replace-regexp-in-string
-					  "[A-Z][a-z]+"
-					  (lambda (x) (concat "-" (downcase x)))
-					  method t))
-		     collect (dbus-register-method bluetooth-bluez-bus
-						   dbus-service-emacs
-						   bluetooth--own-path
-						   (alist-get
-						    :agent
-						    bluetooth--interfaces)
-						   method (intern fname) t)))))
+  (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
+		   "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
+		   "RequestAuthorization" "AuthorizeService" "Cancel")))
+    (setq bluetooth--method-objects
+	  (cl-loop for method in methods
+		   with case-fold-search = nil
+		   for fname = (bluetooth--function-name method "-")
+		   collect (dbus-register-method bluetooth-bluez-bus
+						 dbus-service-emacs
+						 bluetooth--own-path
+						 (alist-get
+						  :agent
+						  bluetooth--interfaces)
+						 method (intern fname) t))))
   (dbus-register-service :session dbus-service-emacs)
   (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
 		    (alist-get :agent-manager bluetooth--interfaces)
@@ -804,13 +783,7 @@ scanning the bus, displaying device info etc."
 	     (#xf . "Personal Mobility Device"))))
   "Bluetooth health minor classes.")
 
-(defconst bluetooth--uuid-alists
-  '((#xfff0 . bluetooth--sdo-uuid-alist)
-    (#xfd00 . bluetooth--member-uuid-alist)
-    (#x1800 . bluetooth--gatt-service-uuid-alist)
-    (#x0 . bluetooth--service-class-uuid-alist))
-  "Bluetooth UUID alists sorted by beginning of range.")
-
+;; FIXME: Can't we get those tables from bluez instead?
 (defconst bluetooth--service-class-uuid-alist
   #s(hash-table
      size 50 data
@@ -1381,6 +1354,13 @@ scanning the bus, displaying device info etc."
       #xFD87 ("Google LLC")))
   "Bluetooth manufacturer UUIDs.")
 
+(defconst bluetooth--uuid-alists
+  `((#xfff0 . ,bluetooth--sdo-uuid-alist)
+    (#xfd00 . ,bluetooth--member-uuid-alist)
+    (#x1800 . ,bluetooth--gatt-service-uuid-alist)
+    (#x0 . ,bluetooth--service-class-uuid-alist))
+  "Bluetooth UUID alists sorted by beginning of range.")
+
 (defun bluetooth--parse-service-class-uuid (uuid)
   "Parse UUID and return short and long service class names."
   (let ((uuid-re (rx (seq bos (submatch (= 8 xdigit))
@@ -1389,9 +1369,8 @@ scanning the bus, displaying device info etc."
       (when (string-match uuid-re uuid)
 	(let ((service-id (string-to-number (match-string 1 uuid) 16)))
 	  (or (gethash service-id
-			 (symbol-value
-			  (cdr (-find (lambda (x) (>= service-id (car x)))
-				      bluetooth--uuid-alists))))
+		       (cdr (-find (lambda (x) (>= service-id (car x)))
+				   bluetooth--uuid-alists)))
 	      (list  (format "#x%08x" service-id) "unknown")))))))
 
 (defun bluetooth--parse-class (class)
@@ -1442,68 +1421,6 @@ scanning the bus, displaying device info etc."
 (defun bluetooth--class-get-minor (field data)
   "Get the minor field spec for FIELD using DATA as specification."
   (symbol-value (cdr (alist-get field data))))
-
-(defun bluetooth-show-device-info ()
-  "Show detailed information on the device at point."
-  (interactive)
-  (cl-flet ((ins-heading (text)
-			 (insert (propertize text 'face
-					     'bluetooth-info-heading)))
-	    (ins-attr (attr value)
-		      (insert (propertize (format "%15s" attr)
-					  'face
-					  'bluetooth-info-attribute))
-		      (insert ": " value "\n")))
-    (let ((dev-id (tabulated-list-get-id)))
-      (when dev-id
-	(bluetooth--with-alias dev-id
-	  (with-current-buffer-window
-	   "*Bluetooth device info*" nil nil
-	   (let ((props (bluetooth--call-method
-			 (car (last (split-string dev-id "/"))) :device
-			 #'dbus-get-all-properties)))
-	     (ins-heading "Bluetooth device info\n\n")
-	     (ins-attr "Alias" alias)
-	     (when-let (address (cdr (assoc "Address" props)))
-	       (ins-attr "Address" address))
-	     (when-let (addr-type (cdr (assoc "AddressType" props)))
-	       (ins-attr "Address type" addr-type))
-	     (let ((rssi (cdr (assoc "RSSI" props)))
-		   (tx-power (cdr (assoc "TxPower" props))))
-	       (when rssi
-		 (ins-attr "RSSI" (format "%4d dBm" rssi)))
-	       (when tx-power
-		 (ins-attr "Tx Power" (format "%4d dBm" tx-power)))
-	       (when (and rssi tx-power)
-		 (ins-attr "Path loss" (format "%4d dB" (- tx-power rssi)))))
-	     (when-let (mf-info (cadr (assoc "ManufacturerData" props)))
-	       (ins-attr "Manufacturer" (or (gethash (car mf-info)
-						     bluetooth--manufacturer-ids)
-					    "unknown")))
-	     (when-let (class (cdr (assoc "Class" props)))
-	       (let ((p-class (bluetooth--parse-class class)))
-		 (ins-heading "\nService and device classes\n")
-		 (dolist (x p-class)
-		   (insert (propertize
-			    (format "%s:\n"  (car x))
-			    'face 'bluetooth-info-attribute))
-		   (if (listp (cadr x))
-		       (dolist (elt (cadr x))
-			 (insert (format "%15s %s\n" "" elt)))
-		     (insert (format "%15s %s\n" "" (cadr x)))))))
-	     (when-let (uuids (cdr (assoc "UUIDs" props)))
-	       (ins-heading "\nSerives (UUIDs)\n")
-	       (dolist (id uuids)
-		 (let ((desc (or (bluetooth--parse-service-class-uuid id)
-				 (list id))))
-		   (when (car desc)
-		     (insert (format "%30s  " (car desc))))
-		   (when (cadr desc)
-		     (insert (format "%s " (cadr desc))))
-		   (when (caddr desc)
-		     (insert (format "(%s)" (caddr desc))))
-		   (insert "\n")))))
-	   (special-mode)))))))
 
 ;;; Very long list of manufacturer IDs.
 ;;; Last updated: 05. Nov 2019
@@ -3614,6 +3531,68 @@ scanning the bus, displaying device info etc."
       #x0835 "Canopy Growth Corporation"
       #x0836 "Bitwards Oy"))
   "Bluetooth manufacturer IDs.")
+
+(defun bluetooth-show-device-info ()
+  "Show detailed information on the device at point."
+  (interactive)
+  (cl-flet ((ins-heading (text)
+			 (insert (propertize text 'face
+					     'bluetooth-info-heading)))
+	    (ins-attr (attr value)
+		      (insert (propertize (format "%15s" attr)
+					  'face
+					  'bluetooth-info-attribute))
+		      (insert ": " value "\n")))
+    (let ((dev-id (tabulated-list-get-id)))
+      (when dev-id
+	(bluetooth--with-alias dev-id
+	  (with-current-buffer-window
+	   "*Bluetooth device info*" nil nil
+	   (let ((props (bluetooth--call-method
+			 (car (last (split-string dev-id "/"))) :device
+			 #'dbus-get-all-properties)))
+	     (ins-heading "Bluetooth device info\n\n")
+	     (ins-attr "Alias" alias)
+	     (when-let (address (cdr (assoc "Address" props)))
+	       (ins-attr "Address" address))
+	     (when-let (addr-type (cdr (assoc "AddressType" props)))
+	       (ins-attr "Address type" addr-type))
+	     (let ((rssi (cdr (assoc "RSSI" props)))
+		   (tx-power (cdr (assoc "TxPower" props))))
+	       (when rssi
+		 (ins-attr "RSSI" (format "%4d dBm" rssi)))
+	       (when tx-power
+		 (ins-attr "Tx Power" (format "%4d dBm" tx-power)))
+	       (when (and rssi tx-power)
+		 (ins-attr "Path loss" (format "%4d dB" (- tx-power rssi)))))
+	     (when-let (mf-info (cadr (assoc "ManufacturerData" props)))
+	       (ins-attr "Manufacturer" (or (gethash (car mf-info)
+						     bluetooth--manufacturer-ids)
+					    "unknown")))
+	     (when-let (class (cdr (assoc "Class" props)))
+	       (let ((p-class (bluetooth--parse-class class)))
+		 (ins-heading "\nService and device classes\n")
+		 (dolist (x p-class)
+		   (insert (propertize
+			    (format "%s:\n"  (car x))
+			    'face 'bluetooth-info-attribute))
+		   (if (listp (cadr x))
+		       (dolist (elt (cadr x))
+			 (insert (format "%15s %s\n" "" elt)))
+		     (insert (format "%15s %s\n" "" (cadr x)))))))
+	     (when-let (uuids (cdr (assoc "UUIDs" props)))
+	       (ins-heading "\nSerives (UUIDs)\n")
+	       (dolist (id uuids)
+		 (let ((desc (or (bluetooth--parse-service-class-uuid id)
+				 (list id))))
+		   (when (car desc)
+		     (insert (format "%30s  " (car desc))))
+		   (when (cadr desc)
+		     (insert (format "%s " (cadr desc))))
+		   (when (caddr desc)
+		     (insert (format "(%s)" (caddr desc))))
+		   (insert "\n")))))
+	   (special-mode)))))))
 
 (provide 'bluetooth)
 
