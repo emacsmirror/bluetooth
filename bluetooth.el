@@ -8,7 +8,7 @@
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware
-;; URL: https://elpa.gnu.org/packages/bluetooth
+;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
 ;; This file is part of GNU Emacs
 
