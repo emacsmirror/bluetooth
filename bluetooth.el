@@ -5,7 +5,7 @@
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
