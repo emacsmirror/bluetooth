@@ -5,7 +5,7 @@
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
@@ -43,6 +43,7 @@
 (require 'let-alist)
 (require 'dash)
 (require 'rx)
+(eval-when-compile (require 'subr-x))
 
 (defgroup bluetooth nil
   "Bluetooth device management."
@@ -122,7 +123,7 @@ This is usually `:system' if bluetoothd runs as a system service, or
 ;;; This variable holds the device information as obtained from D-Bus.
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
-(eval-when-compile
+(eval-and-compile
   (defun bluetooth--function-name (name &optional prefix)
     "Make a function name out of NAME and PREFIX.
 The generated function name has the form `bluetoothPREFIX-NAME'."
