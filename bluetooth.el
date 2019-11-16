@@ -223,8 +223,8 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 ;; NOTE: the strings MUST correspond to Bluez device properties
 ;; as they are used to gather the information from Bluez.
 (defconst bluetooth--list-format
-  [("Alias" 30 t) ("Paired" 6 t) ("Connected" 9 t) ("Address" 17 t)
-   ("Blocked" 7 t) ("Trusted" 7 t)] "The list view format for bluetooth mode.")
+  [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 17 t)
+   ("Blocked" 9 t) ("Trusted" 9 t)] "The list view format for bluetooth mode.")
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
