@@ -78,30 +78,30 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 (put 'bluetooth--mode-info 'risky-local-variable t)
 
-;;; The state information list defines the kind of adapter state displayed
-;;; in the mode-line.  The first element of a sublist is an adapter property,
-;;; the second is a list containing first the current status of the item (t/nil),
-;;; second the displayed string if the property is non-nil and
-;;; third the displayed string if the property is nil.  If a
-;;; display element is nil, nothing will be displayed for this property.
+;; The state information list defines the kind of adapter state displayed
+;; in the mode-line.  The first element of a sublist is an adapter property,
+;; the second is a list containing first the current status of the item (t/nil),
+;; second the displayed string if the property is non-nil and
+;; third the displayed string if the property is nil.  If a
+;; display element is nil, nothing will be displayed for this property.
 (defvar bluetooth--mode-state '(("Powered" . (nil nil "off"))
 				("Discoverable" . (nil "discoverable" nil))
 				("Pairable" . (nil "pairable" nil))
 				("Discovering" . (nil "scan" nil)))
   "Mode line adapter state information.")
 
-;;; Bluez service name as defined by the Bluez API
+;; Bluez service name as defined by the Bluez API
 (defconst bluetooth--service "org.bluez" "D-Bus service name of Bluez.")
 
-;;; Bluez root path as defined by the Bluez API
+;; Bluez root path as defined by the Bluez API
 (defconst bluetooth--root "/org/bluez" "D-Bus path root for Bluez.")
 
-;;; our path name for the pairing agent
+;; our path name for the pairing agent
 (defconst bluetooth--own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
 
-;;; these two variables hold D-Bus objects to allow clean-up in
-;;; the kill-buffer-hook
+;; these two variables hold D-Bus objects to allow clean-up in
+;; the kill-buffer-hook
 (defvar bluetooth--method-objects '() "D-Bus method objects.")
 (defvar bluetooth--adapter-signal nil "D-Bus adapter signal object.")
 
@@ -117,10 +117,10 @@ This is usually `:system' if bluetoothd runs as a system service, or
     (:properties . "org.freedesktop.DBus.Properties"))
   "Bluez D-Bus interfaces.")
 
-;;; Default timeout for D-Bus commands
+;; Default timeout for D-Bus commands
 (defvar bluetooth--timeout 5000 "Default timeout for Bluez D-Bus access.")
 
-;;; This variable holds the device information as obtained from D-Bus.
+;; This variable holds the device information as obtained from D-Bus.
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
 (eval-and-compile
@@ -196,13 +196,13 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
     map)
   "The Bluetooth mode keymap.")
 
-;;; This function returns a list of bluetooth adapters and devices
-;;; in the form
-;;; (("hci0"
-;;;   ("dev_78_AB_BB_DA_6C_7E" "dev_90_F1_AA_06_24_72")))
-;;;
-;;; The first element of each (sub-) list is an adapter name, followed
-;;; by a list of devices known to this adapter.
+;; This function returns a list of bluetooth adapters and devices
+;; in the form
+;; (("hci0"
+;;   ("dev_78_AB_BB_DA_6C_7E" "dev_90_F1_AA_06_24_72")))
+;;
+;; The first element of each (sub-) list is an adapter name, followed
+;; by a list of devices known to this adapter.
 (defun bluetooth--get-devices ()
   "Return a list of bluetooth adapters and devices connected to them."
   (mapcar (lambda (a)
@@ -219,15 +219,15 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 	  ((null value) "no")
 	  (t "yes"))))
 
-;;; List format for the main display buffer.
-;;; NOTE: the strings MUST correspond to Bluez device properties
-;;; as they are used to gather the information from Bluez.
+;; List format for the main display buffer.
+;; NOTE: the strings MUST correspond to Bluez device properties
+;; as they are used to gather the information from Bluez.
 (defconst bluetooth--list-format
   [("Alias" 30 t) ("Paired" 6 t) ("Connected" 9 t) ("Address" 17 t)
    ("Blocked" 7 t) ("Trusted" 7 t)] "The list view format for bluetooth mode.")
 
-;;; This function provides the list entries for the tabulated-list
-;;; view.  It is called from `tabulated-list-print'.
+;; This function provides the list entries for the tabulated-list
+;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
   (setq bluetooth--device-info
@@ -268,8 +268,8 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
   (tabulated-list-print)
   (hl-line-mode))
 
-;;; Build up the index for Imenu.  This function is used as
-;;; `imenu-create-index-function'.
+;; Build up the index for Imenu.  This function is used as
+;; `imenu-create-index-function'.
 (defun bluetooth--create-imenu-index ()
   "Create the Bluetooth device index for Imenu."
   (goto-char (point-min))
@@ -297,8 +297,8 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 	     (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
 		     args)))))
 
-;;; The following functions are the workers for the commands.
-;;; They are used by `bluetooth--make-commands'.
+;; The following functions are the workers for the commands.
+;; They are used by `bluetooth--make-commands'.
 
 (defun bluetooth--dbus-method (method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
@@ -322,7 +322,7 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
     (bluetooth--call-method dev-id api #'dbus-set-property property arg)
     (bluetooth--update-list)))
 
-;;; end of worker function definitions
+;; end of worker function definitions
 
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
@@ -384,8 +384,8 @@ This function only uses the first adapter reported by Bluez."
     (goto-char (+ (point)
 		  (- column (current-column))))))
 
-;;; This function is called from Emacs's mode-line update code
-;;; and must not contain any calls to D-Bus functions.
+;; This function is called from Emacs's mode-line update code
+;; and must not contain any calls to D-Bus functions.
 (defun bluetooth--mode-info ()
   "Update the mode info display."
   (let ((info (mapconcat #'identity
@@ -396,8 +396,8 @@ This function only uses the first adapter reported by Bluez."
     (unless (string-blank-p info)
       (concat " [" info "]"))))
 
-;;; This D-Bus signal handler listens to property changes of the
-;;; adapter and updates the status display accordingly.
+;; This D-Bus signal handler listens to property changes of the
+;; adapter and updates the status display accordingly.
 (defun bluetooth--handle-prop-change (interface data &rest _)
   "Handle property change signals on D-Bus INTERFACE as given by DATA.
 Only adapter properties are considered."
@@ -408,8 +408,8 @@ Only adapter properties are considered."
 	(when-let (state (cdr (assoc prop bluetooth--mode-state)))
 	  (setcar state value))))))
 
-;;; This function registers a signal handler for the _first_ adapter
-;;; reported by Bluez.
+;; This function registers a signal handler for the _first_ adapter
+;; reported by Bluez.
 (defun bluetooth--register-signal-handler ()
   "Register signal handler for adapter property changes."
   (let ((adapters (dbus-introspect-get-node-names bluetooth-bluez-bus
@@ -450,8 +450,8 @@ scanning the bus, displaying device info etc."
 
 ;;; Bluetooth pairing agent code
 
-;;; The release function is not needed at the moment, but needs
-;;; to be implemented for the agent API.
+;; The release function is not needed at the moment, but needs
+;; to be implemented for the agent API.
 (defun bluetooth--release ()
   "Clean up after Bluetooth agent release.")
 
@@ -536,15 +536,15 @@ scanning the bus, displaying device info etc."
 		 p-uuid alias)))))
   :ignore)
 
-;;; This function usually gets called (from D-Bus) while we are
-;;; in the minibuffer trying to read a passkey or PIN.  Tha call to
-;;; `keyboard-quit' is used to break out of there.
+;; This function usually gets called (from D-Bus) while we are
+;; in the minibuffer trying to read a passkey or PIN.  Tha call to
+;; `keyboard-quit' is used to break out of there.
 (defun bluetooth--cancel ()
   "Cancel a pairing process."
   (keyboard-quit)
   (message "Pairing canceled"))
 
-;;; This procedure registers the pairing agent.
+;; This procedure registers the pairing agent.
 (defun bluetooth--register-agent ()
   "Register as a pairing agent."
   (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
@@ -567,27 +567,27 @@ scanning the bus, displaying device info etc."
 		    "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
 
-;;; The following constants define the meaning of the Bluetooth
-;;; CLASS property, which is made up of a number of fields.
-;;; The following components are used:
-;;; NAME (string): a name describing the field type, e.g.
-;;;   "service classes"
-;;; MASK: the bit mask for the CLASS field
-;;; SHIFT: a shift value to be applied before interpreting the
-;;;   CLASS field
-;;; FN: a function to be invoked on the masked and shifted CLASS
-;;;   and DATA
-;;; NEXT: the next field in the class property: NEXT can have
-;;;   one of three different kinds of values:
-;;;   - a field specification (e.g. bluetooth--class-major-dev-classes)
-;;;   - a function returning the next field specification when
-;;;     invoked with the masked and shifted CLASS and DATA
-;;;   - nil, if no further processing of CLASS is necessary
-;;; DATA: the data passed to the parsing (FN) or NEXT functions
-;;;
-;;; The information used in all the following lists has been taken
-;;; from the Bluetooth website:
-;;; https://www.bluetooth.com/specifications/assigned-numbers/
+;; The following constants define the meaning of the Bluetooth
+;; CLASS property, which is made up of a number of fields.
+;; The following components are used:
+;; NAME (string): a name describing the field type, e.g.
+;;   "service classes"
+;; MASK: the bit mask for the CLASS field
+;; SHIFT: a shift value to be applied before interpreting the
+;;   CLASS field
+;; FN: a function to be invoked on the masked and shifted CLASS
+;;   and DATA
+;; NEXT: the next field in the class property: NEXT can have
+;;   one of three different kinds of values:
+;;   - a field specification (e.g. bluetooth--class-major-dev-classes)
+;;   - a function returning the next field specification when
+;;     invoked with the masked and shifted CLASS and DATA
+;;   - nil, if no further processing of CLASS is necessary
+;; DATA: the data passed to the parsing (FN) or NEXT functions
+;;
+;; The information used in all the following lists has been taken
+;; from the Bluetooth website:
+;; https://www.bluetooth.com/specifications/assigned-numbers/
 (defconst bluetooth--class-major-services
   '((name . "major service classes")
     (mask . #xffe000)
@@ -1423,8 +1423,8 @@ scanning the bus, displaying device info etc."
   "Get the minor field spec for FIELD using DATA as specification."
   (symbol-value (cdr (alist-get field data))))
 
-;;; Very long list of manufacturer IDs.
-;;; Last updated: 05. Nov 2019
+;; Very long list of manufacturer IDs.
+;; Last updated: 05. Nov 2019
 (defconst bluetooth--manufacturer-ids
   #s(hash-table
      size 500 data
