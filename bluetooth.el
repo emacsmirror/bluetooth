@@ -130,45 +130,45 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
     (save-match-data
       (concat "bluetooth"
 	      prefix
-	      (replace-regexp-in-string "[A-Z][a-z]+"
+	      (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
 					(lambda (x) (concat "-" (downcase x)))
 					name t)))))
 
 (defmacro bluetooth-defun-method (method api docstring)
-  (declare (doc-string 3) (indent 3))
+  (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth--function-name method)))
     `(defun ,(intern name) () ,docstring
 	    (interactive)
 	    (bluetooth--dbus-method ,method ,api))))
 
 (bluetooth-defun-method "Connect" :device
-			"Connect to the Bluetooth device at point.")
+  "Connect to the Bluetooth device at point.")
 (bluetooth-defun-method "Disconnect" :device
-			"Disconnect Bluetooth device at point.")
+  "Disconnect Bluetooth device at point.")
 (bluetooth-defun-method "StartDiscovery" :adapter
-			"Start discovery mode.")
+  "Start discovery mode.")
 (bluetooth-defun-method "StopDiscovery" :adapter
-			"Stop discovery mode.")
+  "Stop discovery mode.")
 (bluetooth-defun-method "Pair" :device
-			"Pair with device at point.")
+  "Pair with device at point.")
 
 (defmacro bluetooth-defun-toggle (property api docstring)
-  (declare (doc-string 3) (indent 3))
+  (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth--function-name property "-toggle")))
     `(defun ,(intern name) () ,docstring
 	    (interactive)
 	    (bluetooth--dbus-toggle ,property ,api))))
 
 (bluetooth-defun-toggle "Blocked" :device
-			"Mark Bluetooth device at point blocked.")
+  "Mark Bluetooth device at point blocked.")
 (bluetooth-defun-toggle "Trusted" :device
-			"Mark Bluetooth device at point trusted.")
+  "Mark Bluetooth device at point trusted.")
 (bluetooth-defun-toggle "Powered" :adapter
-			"Toggle power supply of adapter.")
+  "Toggle power supply of adapter.")
 (bluetooth-defun-toggle "Discoverable" :adapter
-			"Toggle discoverable mode.")
+  "Toggle discoverable mode.")
 (bluetooth-defun-toggle "Pairable" :adapter
-			"Toggle pairable mode.")
+  "Toggle pairable mode.")
 
 (defun bluetooth-set-alias (name)
   "Set alias of Bluetooth device at point."
