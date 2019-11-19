@@ -127,12 +127,11 @@ This is usually `:system' if bluetoothd runs as a system service, or
   (defun bluetooth--function-name (name &optional prefix)
     "Make a function name out of NAME and PREFIX.
 The generated function name has the form `bluetoothPREFIX-NAME'."
-    (save-match-data
-      (concat "bluetooth"
-	      prefix
-	      (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
-					(lambda (x) (concat "-" (downcase x)))
-					name t)))))
+    (concat "bluetooth"
+	    prefix
+	    (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
+				      (lambda (x) (concat "-" (downcase x)))
+				      name t))))
 
 (defmacro bluetooth-defun-method (method api docstring)
   (declare (doc-string 3) (indent 2))
@@ -477,18 +476,17 @@ scanning the bus, displaying device info etc."
   "Request a pin code for DEVICE."
   (bluetooth--maybe-cancel-reject
     (bluetooth--with-alias device
-      (save-match-data
-	(let* ((pin (read-from-minibuffer
-		     (format "Enter Bluetooth PIN for `%s': " alias)))
-	       (trimmed-pin (substring pin 0 (min (length pin) 16)))
-	       (case-fold-search nil))
-	  (cond ((= 0 (length trimmed-pin))
-		 (message "PIN has zero length")
-		 nil)
-		((string-match "[^[:alnum:]]" trimmed-pin)
-		 (message "PIN contains non-alphanumeric characters")
-		 nil)
-		(t trimmed-pin)))))))
+      (let* ((pin (read-from-minibuffer
+		   (format "Enter Bluetooth PIN for `%s': " alias)))
+	     (trimmed-pin (substring pin 0 (min (length pin) 16)))
+	     (case-fold-search nil))
+	(cond ((= 0 (length trimmed-pin))
+	       (message "PIN has zero length")
+	       nil)
+	      ((string-match "[^[:alnum:]]" trimmed-pin)
+	       (message "PIN contains non-alphanumeric characters")
+	       nil)
+	      (t trimmed-pin))))))
 
 (defun bluetooth--display-pin-code (device pincode)
   "Display the PINCODE for DEVICE."
@@ -1366,13 +1364,12 @@ scanning the bus, displaying device info etc."
   "Parse UUID and return short and long service class names."
   (let ((uuid-re (rx (seq bos (submatch (= 8 xdigit))
 			  "-" (eval bluetooth--base-uuid) eos))))
-    (save-match-data
-      (when (string-match uuid-re uuid)
-	(let ((service-id (string-to-number (match-string 1 uuid) 16)))
-	  (or (gethash service-id
-		       (cdr (-find (lambda (x) (>= service-id (car x)))
-				   bluetooth--uuid-alists)))
-	      (list  (format "#x%08x" service-id) "unknown")))))))
+    (when (string-match uuid-re uuid)
+      (let ((service-id (string-to-number (match-string 1 uuid) 16)))
+	(or (gethash service-id
+		     (cdr (-find (lambda (x) (>= service-id (car x)))
+				 bluetooth--uuid-alists)))
+	    (list  (format "#x%08x" service-id) "unknown"))))))
 
 (defun bluetooth--parse-class (class)
   "Parse the CLASS property of a Bluetooth device."
