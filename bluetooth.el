@@ -457,9 +457,10 @@ scanning the bus, displaying device info etc."
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
   (declare (indent defun))
-  `(let ((alias (bluetooth--call-method
-		 (car (last (split-string ,device "/"))) :device
-		 #'dbus-get-property "Alias")))
+  `(let* ((dev (car (last (split-string ,device "/"))))
+	  (alias (or (bluetooth--call-method dev :device
+					     #'dbus-get-property "Alias")
+		     (replace-regexp-in-string "_" ":" dev nil nil nil 4))))
      ,@body))
 
 (defmacro bluetooth--maybe-cancel-reject (&rest body)
