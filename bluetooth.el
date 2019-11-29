@@ -351,6 +351,12 @@ This function only uses the first adapter reported by Bluez."
     (mapc #'dbus-unregister-object bluetooth--method-objects)
     (dbus-unregister-object bluetooth--adapter-signal)))
 
+(defun bluetooth-unload-function ()
+  "Clean up when the bluetooth feature is unloaded."
+  (when (buffer-live-p (get-buffer bluetooth-buffer-name))
+    (kill-buffer bluetooth-buffer-name))
+  nil)
+
 (defun bluetooth-remove-device ()
   "Remove Bluetooth device at point (unpaires device and host)."
   (interactive)
