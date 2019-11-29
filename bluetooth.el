@@ -341,8 +341,6 @@ This function only uses the first adapter reported by Bluez."
 
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
-  (setq mode-line-misc-info
-	(cl-remove bluetooth--mode-info mode-line-misc-info))
   ;; This function is registered as a kill-buffer-hook, so we don't
   ;; want any errors to get in the way of killing the buffer
   (ignore-errors
