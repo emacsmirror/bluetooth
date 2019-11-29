@@ -127,11 +127,12 @@ This is usually `:system' if bluetoothd runs as a system service, or
   (defun bluetooth--function-name (name &optional prefix)
     "Make a function name out of NAME and PREFIX.
 The generated function name has the form `bluetoothPREFIX-NAME'."
-    (concat "bluetooth"
-	    prefix
-	    (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
-				      (lambda (x) (concat "-" (downcase x)))
-				      name t))))
+    (let ((case-fold-search nil))
+      (concat "bluetooth"
+	      prefix
+	      (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
+					(lambda (x) (concat "-" (downcase x)))
+					name t)))))
 
 (defmacro bluetooth-defun-method (method api docstring)
   (declare (doc-string 3) (indent 2))
@@ -555,7 +556,6 @@ scanning the bus, displaying device info etc."
 		   "RequestAuthorization" "AuthorizeService" "Cancel")))
     (setq bluetooth--method-objects
 	  (cl-loop for method in methods
-		   with case-fold-search = nil
 		   for fname = (bluetooth--function-name method "-")
 		   collect (dbus-register-method bluetooth-bluez-bus
 						 dbus-service-emacs
