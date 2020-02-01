@@ -78,17 +78,22 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 (put 'bluetooth--mode-info 'risky-local-variable t)
 
-;; The state information list defines the kind of adapter state displayed
-;; in the mode-line.  The first element of a sublist is an adapter property,
-;; the second is a list containing first the current status of the item (t/nil),
-;; second the displayed string if the property is non-nil and
-;; third the displayed string if the property is nil.  If a
-;; display element is nil, nothing will be displayed for this property.
+
 (defvar bluetooth--mode-state '(("Powered" . (nil nil "off"))
 				("Discoverable" . (nil "discoverable" nil))
 				("Pairable" . (nil "pairable" nil))
 				("Discovering" . (nil "scan" nil)))
-  "Mode line adapter state information.")
+  "Mode line adapter state information.
+
+The state information list defines the kind of adapter state
+displayed in the mode-line.  The first element of each sub-list
+is an adapter property, the second is a list containing the
+ - current status of the item (t or nil),
+ - string displayed if the property is non-nil,
+ - string displayed if the property is nil.
+
+If a display element is nil, nothing will be displayed for this
+property and state.")
 
 ;; Bluez service name as defined by the Bluez API
 (defconst bluetooth--service "org.bluez" "D-Bus service name of Bluez.")
@@ -219,12 +224,13 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 	  ((null value) "no")
 	  (t "yes"))))
 
-;; List format for the main display buffer.
-;; NOTE: the strings MUST correspond to Bluez device properties
-;; as they are used to gather the information from Bluez.
 (defconst bluetooth--list-format
   [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 17 t)
-   ("Blocked" 9 t) ("Trusted" 9 t)] "The list view format for bluetooth mode.")
+   ("Blocked" 9 t) ("Trusted" 9 t)]
+  "The list view format for bluetooth mode.
+
+NOTE: the strings MUST correspond to Bluez device properties
+as they are used to gather the information from Bluez.")
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
@@ -400,11 +406,10 @@ This function only uses the first adapter reported by Bluez."
     (unless (string-blank-p info)
       (concat " [" info "]"))))
 
-;; This D-Bus signal handler listens to property changes of the
-;; adapter and updates the status display accordingly.
 (defun bluetooth--handle-prop-change (interface data &rest _)
   "Handle property change signals on D-Bus INTERFACE as given by DATA.
-Only adapter properties are considered."
+Only adapter properties are considered.  If an adapter property changes,
+update the status display accordingly."
   (when (string= interface (alist-get :adapter bluetooth--interfaces))
     (dolist (elt data)
       (let ((prop (car elt))
@@ -412,10 +417,11 @@ Only adapter properties are considered."
 	(when-let (state (cdr (assoc prop bluetooth--mode-state)))
 	  (setcar state value))))))
 
-;; This function registers a signal handler for the _first_ adapter
-;; reported by Bluez.
 (defun bluetooth--register-signal-handler ()
-  "Register signal handler for adapter property changes."
+  "Register a signal handler for adapter property changes.
+
+This function registers a signal handler only for the first
+adapter reported by Bluez."
   (let ((adapters (dbus-introspect-get-node-names bluetooth-bluez-bus
 						  bluetooth--service
 						  bluetooth--root)))
