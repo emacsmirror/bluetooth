@@ -3605,4 +3605,8 @@ scanning the bus, displaying device info etc."
 
 (provide 'bluetooth)
 
+;; Local variables:
+;; eval: (flycheck-mode)
+;; End:
+
 ;;; bluetooth.el ends here
