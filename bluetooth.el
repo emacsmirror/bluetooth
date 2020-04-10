@@ -193,6 +193,38 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
     (define-key map [?k] #'bluetooth-remove-device)
     (define-key map [?<] #'bluetooth-beginning-of-list)
     (define-key map [?>] #'bluetooth-end-of-list)
+
+	(define-key map [menu-bar bluetooth]
+	  (cons "Bluetooth" (make-sparse-keymap "Bluetooth")))
+	(define-key map [menu-bar bluetooth device]
+	  (cons "Device" (make-sparse-keymap "Device")))
+
+	(define-key map [menu-bar bluetooth toggle-discoverable]
+	  '(menu-item "Toggle discoverable" bluetooth-toggle-discoverable
+				  :help "Toggle discoverable mode"))
+	(define-key map [menu-bar bluetooth toggle-pairable]
+	  '(menu-item "Toggle pairable" bluetooth-toggle-pairable
+				  :help "Toggle pairable mode"))
+	(define-key map [menu-bar bluetooth toggle-powered]
+	  '(menu-item "Toggle powered" bluetooth-toggle-powered
+				  :help "Toggle power supply of adapter"))
+
+	(define-key map [menu-bar bluetooth device toggle-trusted]
+	  '(menu-item "Toggle trusted" bluetooth-toggle-trusted
+				  :help "Trust/untrust bluetooth device"))
+	(define-key map [menu-bar bluetooth device toggle-blocked]
+	  '(menu-item "Toggle blocked" bluetooth-toggle-blocked
+				  :help "Block/unblock bluetooth device"))
+	(define-key map [menu-bar bluetooth device disconnect]
+	  '(menu-item "Disconnect" bluetooth-disconnect
+				  :help "Disconnect bluetooth device"))
+	(define-key map [menu-bar bluetooth device connect]
+	  '(menu-item "Connect" bluetooth-connect
+				  :help "Connect bluetooth device"))
+	(define-key map [menu-bar bluetooth device pair]
+	  '(menu-item "Pair" bluetooth-pair
+				  :help "Pair bluetooth device"))
+
     map)
   "The Bluetooth mode keymap.")
 
