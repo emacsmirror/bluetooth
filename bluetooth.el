@@ -3,6 +3,8 @@
 ;; Copyright (C) 2019 Free Software Foundation, Inc.
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
+;;         Etienne Prud’homme <e.e.f.prudhomme@gmail.com>
+;;
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
 ;; Version: 0.1.2
