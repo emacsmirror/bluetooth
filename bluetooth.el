@@ -1449,7 +1449,7 @@ scanning the bus, displaying device info etc."
 					   (let* ((m-field (lsh (logand class .mask) .shift))
 							  (res (cons .name
 										 (list (funcall .fn m-field .data))))
-							  (n-acc (push res acc)))
+							  (n-acc (cons res acc)))
 						 (cond ((functionp .next)
 								(let ((spec (funcall .next m-field .data)))
 								  (if spec
