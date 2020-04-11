@@ -47,6 +47,9 @@
 (require 'rx)
 (eval-when-compile (require 'subr-x))
 
+
+;;;; customization
+
 (defgroup bluetooth nil
   "Bluetooth device management."
   :group 'comm)
@@ -68,6 +71,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defface bluetooth-info-attribute
   '((t . (:slant italic)))
   "Face for device attribute names.")
+
+
+;;;; internal constants and variables
 
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
@@ -130,6 +136,9 @@ property and state.")
 ;; This variable holds the device information as obtained from D-Bus.
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
+
+;;;; command definitions
+
 (eval-and-compile
   (defun bluetooth--function-name (name &optional prefix)
     "Make a function name out of NAME and PREFIX.
@@ -181,6 +190,9 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
   "Set alias of Bluetooth device at point."
   (interactive "MAlias (empty to reset): ")
   (bluetooth--dbus-set "Alias" name :device))
+
+
+;;;; keymap and menu
 
 (defvar bluetooth-mode-map
   (let ((map (make-sparse-keymap)))
@@ -234,6 +246,9 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 
     map)
   "The Bluetooth mode keymap.")
+
+
+;;;; internal functions
 
 ;; This function returns a list of bluetooth adapters and devices
 ;; in the form
@@ -471,6 +486,8 @@ adapter reported by Bluez."
 				:arg-namespace
 				(alist-get :adapter
 					   bluetooth--interfaces)))))
+
+;;;; mode entry command
 
 ;;;###autoload
 (defun bluetooth-list-devices ()
@@ -493,6 +510,8 @@ scanning the bus, displaying device info etc."
       (bluetooth--register-signal-handler))))
 
 ;;; Bluetooth pairing agent code
+
+;;;; Bluetooth pairing agent code
 
 ;; The release function is not needed at the moment, but needs
 ;; to be implemented for the agent API.
@@ -609,6 +628,8 @@ scanning the bus, displaying device info etc."
 		    (alist-get :agent-manager bluetooth--interfaces)
 		    "RegisterAgent"
 		    :object-path bluetooth--own-path "KeyboardDisplay"))
+
+;;;; service and class UUID definitions
 
 ;; The following constants define the meaning of the Bluetooth
 ;; CLASS property, which is made up of a number of fields.
@@ -1015,6 +1036,9 @@ scanning the bus, displaying device info etc."
       #xFFFE ("AirFuel Alliance" "Wireless Power Transfer Service")))
   "Bluetooth standards development organizations UUIDS.")
 
+
+;;;; Bluetooth member UUIDs
+
 (defconst bluetooth--member-uuid-alist
   #s(hash-table
      size 100 data
@@ -1398,6 +1422,9 @@ scanning the bus, displaying device info etc."
       #xFD87 ("Google LLC")))
   "Bluetooth manufacturer UUIDs.")
 
+
+;;;; service and class parsing code
+
 (defconst bluetooth--uuid-alists
   `((#xfff0 . ,bluetooth--sdo-uuid-alist)
     (#xfd00 . ,bluetooth--member-uuid-alist)
@@ -1464,6 +1491,9 @@ scanning the bus, displaying device info etc."
 (defun bluetooth--class-get-minor (field data)
   "Get the minor field spec for FIELD using DATA as specification."
   (symbol-value (cdr (alist-get field data))))
+
+
+;;;; Bluetooth company IDs
 
 ;; Very long list of manufacturer IDs.
 ;; Last updated: 05. Nov 2019
@@ -3574,6 +3604,9 @@ scanning the bus, displaying device info etc."
       #x0835 "Canopy Growth Corporation"
       #x0836 "Bitwards Oy"))
   "Bluetooth manufacturer IDs.")
+
+
+;;;; device info display
 
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
