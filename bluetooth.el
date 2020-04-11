@@ -1,6 +1,6 @@
 ;;; bluetooth.el --- A Major mode for Bluetooth devices -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Free Software Foundation, Inc.
+;; Copyright (C) 2019, 2020 Free Software Foundation, Inc.
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;;         Etienne Prud’homme <e.e.f.prudhomme@gmail.com>
