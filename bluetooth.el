@@ -149,6 +149,43 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 										(lambda (x) (concat "-" (downcase x)))
 										name t)))))
 
+(defun bluetooth-connect (uuid)
+  "Connect to the Bluetooth device at point.
+When called with a prefix argument, ask for a profile and
+connect only this profile.  Otherwise, or when called
+non-interactively with UUID set to nil, connect to all profiles."
+  (interactive
+   (if current-prefix-arg
+	   (let* ((dev-id (tabulated-list-get-id))
+			  (uuids (bluetooth--device-uuids
+					  (bluetooth--device-properties dev-id)))
+			  (profile (completing-read "Profile: "
+										(mapcar #'cadadr uuids) nil t)))
+		 (list (cl-rassoc profile uuids :key #'cadar :test #'string=)))
+	 '(nil)))
+  (if uuid
+	  (bluetooth--dbus-method "ConnectProfile" :device (car uuid))
+	(bluetooth--dbus-method "Connect" :device)))
+
+(defun bluetooth-disconnect (uuid)
+  "Disconnect the Bluetooth device at point.
+When called with a prefix argument, ask for a profile and
+disconnect only this profile.  Otherwise, or when called
+non-interactively with UUID set to nil, disconnect to all
+profiles."
+  (interactive
+   (if current-prefix-arg
+	   (let* ((dev-id (tabulated-list-get-id))
+			  (uuids (bluetooth--device-uuids
+					  (bluetooth--device-properties dev-id)))
+			  (profile (completing-read "Profile: "
+										(mapcar #'cadadr uuids) nil t)))
+		 (list (cl-rassoc profile uuids :key #'cadar :test #'string=)))
+	 '(nil)))
+  (if uuid
+	  (bluetooth--dbus-method "DisconnectProfile" :device (car uuid))
+	(bluetooth--dbus-method "Disconnect" :device)))
+
 (defmacro bluetooth-defun-method (method api docstring)
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth--function-name method)))
@@ -156,10 +193,6 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 			(interactive)
 			(bluetooth--dbus-method ,method ,api))))
 
-(bluetooth-defun-method "Connect" :device
-  "Connect to the Bluetooth device at point.")
-(bluetooth-defun-method "Disconnect" :device
-  "Disconnect Bluetooth device at point.")
 (bluetooth-defun-method "StartDiscovery" :adapter
   "Start discovery mode.")
 (bluetooth-defun-method "StopDiscovery" :adapter
