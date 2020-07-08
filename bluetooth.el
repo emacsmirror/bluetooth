@@ -486,6 +486,27 @@ adapter reported by Bluez."
 								(alist-get :adapter
 										   bluetooth--interfaces)))))
 
+(defun bluetooth--device-properties (dev-id)
+  "Return all properties of device DEV-ID."
+  (bluetooth--call-method
+   (car (last (split-string dev-id "/"))) :device
+   #'dbus-get-all-properties))
+
+(defun bluetooth--device-uuids (properties)
+  "Return a UUID alist of device DEV-ID.
+Each list element contains a UUID as the key and the
+corresponding description string as the value.  If no description
+string is available (e.g. for unknown UUIDs,) the UUID itself is
+the value."
+  (let ((uuids (cdr (assoc "UUIDs" properties)))
+		(uuid-alist))
+	(when uuids
+	  (dolist (id uuids)
+		(let ((desc (or (bluetooth--parse-service-class-uuid id)
+						(list id))))
+		  (push (list id desc) uuid-alist))))
+	(nreverse uuid-alist)))
+
 
 ;;;; mode entry command
 
@@ -3623,9 +3644,7 @@ scanning the bus, displaying device info etc."
 		(bluetooth--with-alias dev-id
 		  (with-current-buffer-window
 		   "*Bluetooth device info*" nil nil
-		   (let ((props (bluetooth--call-method
-						 (car (last (split-string dev-id "/"))) :device
-						 #'dbus-get-all-properties)))
+		   (let ((props (bluetooth--device-properties dev-id)))
 			 (ins-heading "Bluetooth device info\n\n")
 			 (ins-attr "Alias" alias)
 			 (when-let (address (cdr (assoc "Address" props)))
@@ -3655,18 +3674,18 @@ scanning the bus, displaying device info etc."
 					   (dolist (elt (cadr x))
 						 (insert (format "%15s %s\n" "" elt)))
 					 (insert (format "%15s %s\n" "" (cadr x)))))))
-			 (when-let (uuids (cdr (assoc "UUIDs" props)))
+			 (when (cdr (assoc "UUIDs" props))
 			   (ins-heading "\nSerives (UUIDs)\n")
-			   (dolist (id uuids)
-				 (let ((desc (or (bluetooth--parse-service-class-uuid id)
-								 (list id))))
-				   (when (car desc)
-					 (insert (format "%30s  " (car desc))))
-				   (when (cadr desc)
-					 (insert (format "%s " (cadr desc))))
-				   (when (caddr desc)
-					 (insert (format "(%s)" (caddr desc))))
-				   (insert "\n")))))
+			   (mapc (lambda (id-pair)
+					   (let ((desc (cadr id-pair)))
+						 (when (car desc)
+						   (insert (format "%36s  " (car desc))))
+						 (when (cadr desc)
+						   (insert (format "%s " (cadr desc))))
+						 (when (caddr desc)
+						   (insert (format "(%s)" (caddr desc))))
+						 (insert "\n")))
+					 (bluetooth--device-uuids props))))
 		   (special-mode)))))))
 
 (provide 'bluetooth)
