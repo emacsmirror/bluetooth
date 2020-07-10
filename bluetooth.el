@@ -149,20 +149,31 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 										(lambda (x) (concat "-" (downcase x)))
 										name t)))))
 
+(defun bluetooth--choose-uuid ()
+  "Ask for a UUID and return it in a form suitable for ‘interactive’."
+  (if current-prefix-arg
+	  (let* ((dev-id (tabulated-list-get-id))
+			 (uuids (bluetooth--device-uuids
+					 (bluetooth--device-properties dev-id)))
+			 (profile (completing-read "Profile: "
+									   (mapcar (lambda (x)
+												 (concat (caadr x)
+														 ", "
+														 (cadadr x)))
+											   uuids)
+									   nil t)))
+		(list (cl-rassoc profile uuids
+						 :key (lambda (x)
+								(concat (caar x) ", " (cadar x)))
+						 :test #'string=)))
+	'(nil)))
+
 (defun bluetooth-connect (uuid)
   "Connect to the Bluetooth device at point.
 When called with a prefix argument, ask for a profile and
 connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
-  (interactive
-   (if current-prefix-arg
-	   (let* ((dev-id (tabulated-list-get-id))
-			  (uuids (bluetooth--device-uuids
-					  (bluetooth--device-properties dev-id)))
-			  (profile (completing-read "Profile: "
-										(mapcar #'cadadr uuids) nil t)))
-		 (list (cl-rassoc profile uuids :key #'cadar :test #'string=)))
-	 '(nil)))
+  (interactive (bluetooth--choose-uuid))
   (if uuid
 	  (bluetooth--dbus-method "ConnectProfile" :device (car uuid))
 	(bluetooth--dbus-method "Connect" :device)))
@@ -173,15 +184,7 @@ When called with a prefix argument, ask for a profile and
 disconnect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, disconnect to all
 profiles."
-  (interactive
-   (if current-prefix-arg
-	   (let* ((dev-id (tabulated-list-get-id))
-			  (uuids (bluetooth--device-uuids
-					  (bluetooth--device-properties dev-id)))
-			  (profile (completing-read "Profile: "
-										(mapcar #'cadadr uuids) nil t)))
-		 (list (cl-rassoc profile uuids :key #'cadar :test #'string=)))
-	 '(nil)))
+  (interactive (bluetooth--choose-uuid))
   (if uuid
 	  (bluetooth--dbus-method "DisconnectProfile" :device (car uuid))
 	(bluetooth--dbus-method "Disconnect" :device)))
