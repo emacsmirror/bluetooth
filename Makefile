@@ -10,7 +10,7 @@
 EMACS = emacs
 EL = bluetooth.el
 ELPA_EXT = dash
-LDFLAGS = -L ./dep/dash -L ../elpa/packages/hydra
+LDFLAGS = -L ./dep/dash
 
 .PHONY: compile clean depclean depsetup depupdate run
 
