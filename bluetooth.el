@@ -12,8 +12,6 @@
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
-;; This file is part of GNU Emacs
-
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or (at
@@ -189,6 +187,19 @@ profiles."
 	  (bluetooth--dbus-method "DisconnectProfile" :device (car uuid))
 	(bluetooth--dbus-method "Disconnect" :device)))
 
+(defun bluetooth-connect-profile ()
+  "Ask for a Bluetooth profile and connect the device at point to it."
+  (interactive)
+  (let ((prefix-arg (list 4)))
+	(command-execute #'bluetooth-connect)))
+
+(defun bluetooth-disconnect-profile ()
+  "Ask for a Bluetooth profile and disconnect the device at point from it."
+  (interactive)
+  (let ((prefix-arg (list 4)))
+	(command-execute #'bluetooth-disconnect)))
+
+
 (defmacro bluetooth-defun-method (method api docstring)
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth--function-name method)))
@@ -270,6 +281,12 @@ profiles."
 	(define-key map [menu-bar bluetooth device]
 	  (cons "Device" (make-sparse-keymap "Device")))
 
+	(define-key map [menu-bar bluetooth stop-discovery]
+	  '(menu-item "Stop discovery" bluetooth-stop-discovery
+				  :help "Stop discovery"))
+	(define-key map [menu-bar bluetooth start-discovery]
+	  '(menu-item "Start discovery" bluetooth-start-discovery
+				  :help "Start discovery"))
 	(define-key map [menu-bar bluetooth toggle-discoverable]
 	  '(menu-item "Toggle discoverable" bluetooth-toggle-discoverable
 				  :help "Toggle discoverable mode"))
@@ -280,18 +297,33 @@ profiles."
 	  '(menu-item "Toggle powered" bluetooth-toggle-powered
 				  :help "Toggle power supply of adapter"))
 
+	(define-key map [menu-bar bluetooth device show-info]
+	  '(menu-item "Show device info" bluetooth-show-device-info
+				  :help "Show bluetooth device info"))
+	(define-key map [menu-bar bluetooth device set-alias]
+	  '(menu-item "Set device alias" bluetooth-set-alias
+				  :help "Set device alias"))
 	(define-key map [menu-bar bluetooth device toggle-trusted]
 	  '(menu-item "Toggle trusted" bluetooth-toggle-trusted
 				  :help "Trust/untrust bluetooth device"))
 	(define-key map [menu-bar bluetooth device toggle-blocked]
 	  '(menu-item "Toggle blocked" bluetooth-toggle-blocked
 				  :help "Block/unblock bluetooth device"))
+	(define-key map [menu-bar bluetooth device disconnect-profile]
+	  '(menu-item "Disconnect profile" bluetooth-disconnect-profile
+				  :help "Disconnect bluetooth device profile"))
 	(define-key map [menu-bar bluetooth device disconnect]
 	  '(menu-item "Disconnect" bluetooth-disconnect
 				  :help "Disconnect bluetooth device"))
+	(define-key map [menu-bar bluetooth device connect-profile]
+	  '(menu-item "Connect profile" bluetooth-connect-profile
+				  :help "Connect bluetooth device profile"))
 	(define-key map [menu-bar bluetooth device connect]
 	  '(menu-item "Connect" bluetooth-connect
 				  :help "Connect bluetooth device"))
+	(define-key map [menu-bar bluetooth device remove]
+	  '(menu-item "Remove" bluetooth-remove-device
+				  :help "Remove bluetooth device"))
 	(define-key map [menu-bar bluetooth device pair]
 	  '(menu-item "Pair" bluetooth-pair
 				  :help "Pair bluetooth device"))
