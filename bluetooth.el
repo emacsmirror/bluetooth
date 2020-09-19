@@ -938,7 +938,10 @@ scanning the bus, displaying device info etc."
 			 (#xf . "Personal mobility device"))))
   "Bluetooth health minor classes.")
 
-(defconst bluetooth--service-class-uuid-alist
+(define-obsolete-variable-alias 'bluetooth--service-class-uuid-alist
+  'bluetooth--service-class-uuids "0.2")
+
+(defconst bluetooth--service-class-uuids
   #s(hash-table
 	 size 50 data
 	 (#x1000
@@ -1034,7 +1037,10 @@ scanning the bus, displaying device info etc."
 	  #x1402 ("HDP Sink" "Health Device Profile (HDP)")))
   "Bluetooth service class UUIDs.")
 
-(defconst bluetooth--gatt-service-uuid-alist
+(define-obsolete-variable-alias 'bluetooth--gatt-service-uuid-alist
+  'bluetooth--gatt-service-uuids "0.2")
+
+(defconst bluetooth--gatt-service-uuids
   #s(hash-table
 	 size 20 data
 	 (#x1800
@@ -1110,7 +1116,10 @@ scanning the bus, displaying device info etc."
 	  #x181D ("Weight Scale" "org.bluetooth.service.weight_scale" "GSS")))
   "Bluetooth GATT service UUIDs.")
 
-(defconst bluetooth--sdo-uuid-alist
+(define-obsolete-variable-alias 'bluetooth--sdo-uuid-alist
+  'bluetooth--sdo-uuids "0.2")
+
+(defconst bluetooth--sdo-uuids
   #s(hash-table
 	 size 5 data
 	 (#xFFF9
@@ -1129,7 +1138,10 @@ scanning the bus, displaying device info etc."
 ;;;; Bluetooth member UUIDs
 ;; Last updated: 19. Sep 2020
 
-(defconst bluetooth--member-uuid-alist
+(define-obsolete-variable-alias 'bluetooth--member-uuid-alist
+  'bluetooth--member-uuids "0.2")
+
+(defconst bluetooth--member-uuids
   #s(hash-table
 	 size 100 data
 	 (#xFEFF
@@ -1584,12 +1596,14 @@ scanning the bus, displaying device info etc."
 
 ;;;; service and class parsing code
 
-(defconst bluetooth--uuid-alists
-  `((#xfff0 . ,bluetooth--sdo-uuid-alist)
-	(#xfd00 . ,bluetooth--member-uuid-alist)
-	(#x1800 . ,bluetooth--gatt-service-uuid-alist)
-	(#x0 . ,bluetooth--service-class-uuid-alist))
-  "Bluetooth UUID alists sorted by beginning of range.")
+(define-obsolete-variable-alias 'bluetooth--uuid-alists 'bluetooth--uuids "0.2")
+
+(defconst bluetooth--uuids
+  `((#xfff0 . ,bluetooth--sdo-uuids)
+	(#xfd00 . ,bluetooth--member-uuids)
+	(#x1800 . ,bluetooth--gatt-service-uuids)
+	(#x0 . ,bluetooth--service-class-uuids))
+  "Bluetooth UUID tables sorted by beginning of range.")
 
 (defun bluetooth--parse-service-class-uuid (uuid)
   "Parse UUID and return short and long service class names."
@@ -1599,7 +1613,7 @@ scanning the bus, displaying device info etc."
 	  (let ((service-id (string-to-number (match-string 1 uuid) 16)))
 		(or (gethash service-id
 					 (cdr (-find (lambda (x) (>= service-id (car x)))
-								 bluetooth--uuid-alists)))
+								 bluetooth--uuids)))
 			(list  (format "#x%08x" service-id) "unknown"))))))
 
 (defun bluetooth--parse-class (class)
