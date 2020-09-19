@@ -180,7 +180,7 @@ non-interactively with UUID set to nil, connect to all profiles."
   "Disconnect the Bluetooth device at point.
 When called with a prefix argument, ask for a profile and
 disconnect only this profile.  Otherwise, or when called
-non-interactively with UUID set to nil, disconnect to all
+non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
