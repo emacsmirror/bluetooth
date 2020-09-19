@@ -233,7 +233,7 @@ profiles."
   "Toggle pairable mode.")
 
 (defun bluetooth-set-alias (name)
-  "Set alias of Bluetooth device at point."
+  "Set alias of Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): ")
   (bluetooth--dbus-set "Alias" name :device))
 
@@ -561,11 +561,12 @@ adapter reported by Bluez."
    #'dbus-get-all-properties))
 
 (defun bluetooth--device-uuids (properties)
-  "Return a UUID alist of device DEV-ID.
+  "Extract a UUID alist from device PROPERTIES.
 Each list element contains a UUID as the key and the
 corresponding description string as the value.  If no description
 string is available (e.g. for unknown UUIDs,) the UUID itself is
-the value."
+the value.  The device properties can be obtained in the suitable
+form by a call to ‘bluetooth--device-properties’."
   (let ((uuids (cdr (assoc "UUIDs" properties)))
 		(uuid-alist))
 	(when uuids
