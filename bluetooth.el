@@ -4140,3 +4140,8 @@ scanning the bus, displaying device info etc."
 (provide 'bluetooth)
 
 ;;; bluetooth.el ends here
+
+;; Local Variables:
+;; indent-tabs-mode: t
+;; tab-width: 4
+;; End:
