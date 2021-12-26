@@ -358,7 +358,7 @@ profiles."
 		  (t "yes"))))
 
 (defconst bluetooth--list-format
-  [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 17 t)
+  [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
    ("Blocked" 9 t) ("Trusted" 9 t)]
   "The list view format for bluetooth mode.
 
