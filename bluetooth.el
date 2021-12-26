@@ -4124,7 +4124,7 @@ scanning the bus, displaying device info etc."
 						 (insert (format "%15s %s\n" "" elt)))
 					 (insert (format "%15s %s\n" "" (cadr x)))))))
 			 (when (cdr (assoc "UUIDs" props))
-			   (ins-heading "\nSerives (UUIDs)\n")
+			   (ins-heading "\nServices (UUIDs)\n")
 			   (mapc (lambda (id-pair)
 					   (let ((desc (cadr id-pair)))
 						 (when (car desc)
