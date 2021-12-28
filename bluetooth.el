@@ -596,21 +596,18 @@ update the status display accordingly."
 
 This function registers a signal handler only for the first
 adapter reported by Bluez."
-  (let ((adapters (dbus-introspect-get-node-names bluetooth-bluez-bus
-												  bluetooth--service
-												  bluetooth--root)))
-	(setq bluetooth--adapter-signal
-		  (dbus-register-signal bluetooth-bluez-bus
-								nil
-								(concat bluetooth--root "/"
-										(car adapters))
-								(alist-get :properties
-										   bluetooth--interfaces)
-								"PropertiesChanged"
-								#'bluetooth--handle-prop-change
-								:arg-namespace
-								(alist-get :adapter
-										   bluetooth--interfaces)))))
+  (let ((adapter (cl-first (bluetooth--adapters))))
+	(dbus-register-signal bluetooth-bluez-bus
+						  nil
+						  (concat bluetooth--root "/"
+								  adapter)
+						  (alist-get :properties
+									 bluetooth--interfaces)
+						  "PropertiesChanged"
+						  #'bluetooth--handle-prop-change
+						  :arg-namespace
+						  (alist-get :adapter
+									 bluetooth--interfaces))))
 
 (defun bluetooth--device-uuids (properties)
   "Extract a UUID alist from device PROPERTIES.
@@ -651,7 +648,8 @@ scanning the bus, displaying device info etc."
 	  (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
 	  (setq imenu-create-index-function #'bluetooth--create-imenu-index)
 	  (bluetooth--initialize-mode-info)
-	  (bluetooth--register-signal-handler))))
+	  (setq bluetooth--adapter-signal
+			(bluetooth--register-signal-handler)))))
 
 
 ;;;; Bluetooth pairing agent code
