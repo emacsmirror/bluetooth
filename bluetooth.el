@@ -979,7 +979,7 @@ scanning the bus, displaying device info etc."
 
 (defconst bluetooth--service-class-uuids
   #s(hash-table
-	 size 50 data
+	 size 120 data
 	 (#x1000
 	  ("ServiceDiscoveryServerServiceClassID"
 	   "Bluetooth Core Specification")
@@ -1078,7 +1078,7 @@ scanning the bus, displaying device info etc."
 
 (defconst bluetooth--gatt-service-uuids
   #s(hash-table
-	 size 20 data
+	 size 45 data
 	 (#x1800
 	  ("Generic Access" "org.bluetooth.service.generic_access" "GSS")
 	  #x1811 ("Alert Notification Service"
@@ -1157,7 +1157,7 @@ scanning the bus, displaying device info etc."
 
 (defconst bluetooth--sdo-uuids
   #s(hash-table
-	 size 5 data
+	 size 10 data
 	 (#xFFF9
 	  ("Fast IDentity Online Alliance (FIDO)"
 	   "FIDO2 secure client-to-authenticator transport")
@@ -1179,7 +1179,7 @@ scanning the bus, displaying device info etc."
 
 (defconst bluetooth--member-uuids
   #s(hash-table
-	 size 100 data
+	 size 500 data
 	 (#xFEFF
 	  ("GN Netcom")
 	  #xFEFE ("GN ReSound A/S")
@@ -1708,7 +1708,7 @@ scanning the bus, displaying device info etc."
 ;; Last updated: 19. Sep 2020
 (defconst bluetooth--manufacturer-ids
   #s(hash-table
-	 size 500 data
+	 size 3000 data
 	 (#x0000
 	  "Ericsson Technology Licensing"
 	  #x0001 "Nokia Mobile Phones"
