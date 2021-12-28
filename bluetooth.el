@@ -373,15 +373,10 @@ properties."
   (dbus-introspect-get-node-names
    bluetooth-bluez-bus bluetooth--service bluetooth--root))
 
-;; TODO don't return the adapter names, as they are in the devices?
-;; do this per adapter?
-(defun bluetooth--devices ()
-  "Return a list of bluetooth adapters and devices connected to them."
-  (mapcar (lambda (a)
-			(list a (dbus-introspect-get-node-names
-					 bluetooth-bluez-bus bluetooth--service
-					 (concat bluetooth--root "/" a))))
-		  (bluetooth--adapters)))
+(defun bluetooth--devices (adapter)
+  "Return a list of bluetooth devices connected to ADAPTER."
+  (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth--service
+								  (concat bluetooth--root "/" adapter)))
 
 (defun bluetooth--dev-state (key device)
   "Return state information regarding KEY for DEVICE."
@@ -391,18 +386,13 @@ properties."
 		  (t "yes"))))
 
 ;; TODO extend to multiple adapters
-(defun bluetooth--adapter-properties ()
-  "Return the properties of the first bluetooth adapter.
-This function evaluates to a list of the form ‘(ADAPTER
-PROPERTIES)’, where ADAPTER is the name (not the whole path) of
-the first adapter, and PROPERTIES is an alist of attribute/value
-pairs."
-  (let ((adapter (cl-first (bluetooth--adapters))))
-	(list adapter
-		  (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
-								   (concat bluetooth--root "/" adapter)
-								   (alist-get :adapter
-											  bluetooth--interfaces)))))
+(defun bluetooth--adapter-properties (adapter)
+  "Return the properties of bluetooth ADAPTER.
+This function evaluates to an alist of attribute/value pairs."
+  (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
+						   (concat bluetooth--root "/" adapter)
+						   (alist-get :adapter
+									  bluetooth--interfaces)))
 
 (defconst bluetooth--list-format
   [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
@@ -426,13 +416,13 @@ as they are used to gather the information from Bluez.")
 
 (defun bluetooth--update-device-info ()
   "Update the bluetooth devices list."
-  (mapc (lambda (devlist)
-		  (mapc (lambda (dev)
-				  (puthash dev
-						   (bluetooth--create-device (cl-first devlist) dev)
-						   bluetooth--device-info))
-				(cl-second devlist)))
-		(bluetooth--devices)))
+  (mapc (lambda (adapter)
+		   (mapc (lambda (dev)
+				   (puthash dev
+							(bluetooth--create-device adapter dev)
+							bluetooth--device-info))
+				 (bluetooth--devices adapter)))
+		(bluetooth--adapters)))
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
@@ -533,7 +523,8 @@ as they are used to gather the information from Bluez.")
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
-  (let* ((props (cl-second (bluetooth--adapter-properties)))
+  (let* ((adapter (cl-first (bluetooth--adapters)))
+		 (props (bluetooth--adapter-properties adapter))
 		 (info (--map (list (cl-first it)
 							(list (cl-rest (assoc (cl-first it) props))))
 					  bluetooth--mode-state)))
@@ -4225,7 +4216,8 @@ scanning the bus, displaying device info etc."
 (defun bluetooth-show-adapter-info ()
   "Show detailed information on the (first) bluetooth adapter."
   (interactive)
-  (-let (((adapter props) (bluetooth--adapter-properties)))
+  (let* ((adapter (cl-first (bluetooth--adapters)))
+		 (props (bluetooth--adapter-properties adapter)))
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
 	  (bluetooth--ins-heading "Bluetooth adapter info\n\n")
 	  (--map (bluetooth--ins-attr props it)
