@@ -148,10 +148,8 @@ property and state.")
 	(:properties . "org.freedesktop.DBus.Properties"))
   "Bluez D-Bus interfaces.")
 
-;; Default timeout for D-Bus commands
 (defvar bluetooth--timeout 5000 "Default timeout for Bluez D-Bus access.")
 
-;; This variable holds the device information as obtained from D-Bus.
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
 
@@ -160,7 +158,7 @@ property and state.")
 (eval-and-compile
   (defun bluetooth--function-name (name &optional prefix)
 	"Make a function name out of NAME and PREFIX.
-The generated function name has the form `bluetoothPREFIX-NAME'."
+The generated function name has the form ‘bluetoothPREFIX-NAME’."
 	(let ((case-fold-search nil))
 	  (concat "bluetooth"
 			  prefix
@@ -195,7 +193,7 @@ connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-	  (bluetooth--dbus-method "ConnectProfile" :device (car uuid))
+	  (bluetooth--dbus-method "ConnectProfile" :device (cl-first uuid))
 	(bluetooth--dbus-method "Connect" :device)))
 
 (defun bluetooth-disconnect (uuid)
@@ -206,7 +204,7 @@ non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-	  (bluetooth--dbus-method "DisconnectProfile" :device (car uuid))
+	  (bluetooth--dbus-method "DisconnectProfile" :device (cl-first uuid))
 	(bluetooth--dbus-method "Disconnect" :device)))
 
 (defun bluetooth-connect-profile ()
@@ -446,7 +444,7 @@ as they are used to gather the information from Bluez.")
 	(maphash (lambda (dev dev-info)
 			   (push (list dev
 						   (cl-map 'vector (lambda (key) (bluetooth--dev-state key dev-info))
-								   (mapcar #'car bluetooth--list-format)))
+								   (mapcar #'cl-first bluetooth--list-format)))
 					 dev-list))
 			 bluetooth--device-info)
 	dev-list))
@@ -497,7 +495,10 @@ as they are used to gather the information from Bluez.")
 		(interface (alist-get api bluetooth--interfaces)))
 	(when path
 	  (apply function bluetooth-bluez-bus bluetooth--service path interface
-			 (mapcar (lambda (x) (if (eq x :path-devid) (concat path "/" dev-id) x))
+			 (mapcar (lambda (x)
+					   (if (eq x :path-devid)
+						   (concat path "/" dev-id)
+						 x))
 					 args)))))
 
 ;; The following functions are the workers for the commands.
@@ -559,15 +560,14 @@ This function only uses the first adapter reported by Bluez."
 (defun bluetooth-remove-device ()
   "Remove Bluetooth device at point (unpaires device and host)."
   (interactive)
-  (let ((dev-id (tabulated-list-get-id)))
-	(when dev-id
-	  (bluetooth--call-method dev-id
-							  :adapter
-							  #'dbus-call-method-asynchronously
-							  "RemoveDevice"
-							  #'bluetooth--update-list
-							  :timeout bluetooth--timeout
-							  :object-path :path-devid))))
+  (when-let (dev-id (tabulated-list-get-id))
+	(bluetooth--call-method dev-id
+							:adapter
+							#'dbus-call-method-asynchronously
+							"RemoveDevice"
+							#'bluetooth--update-list
+							:timeout bluetooth--timeout
+							:object-path :path-devid)))
 
 ;; This function is called from Emacs's mode-line update code
 ;; and must not contain any calls to D-Bus functions.
@@ -591,6 +591,7 @@ update the status display accordingly."
 				(setf (bluetooth-property-active-p property) value))))
 		  data)))
 
+;; TODO extend to multiple adapters
 (defun bluetooth--register-signal-handler ()
   "Register a signal handler for adapter property changes.
 
@@ -615,15 +616,15 @@ Each list element contains a UUID as the key and the
 corresponding description string as the value.  If no description
 string is available (e.g. for unknown UUIDs,) the UUID itself is
 the value.  The device properties can be obtained in the suitable
-form by a call to ‘bluetooth--device-properties’."
-  (let ((uuids (cdr (assoc "UUIDs" properties)))
+form by a call to ‘bluetooth-device-properties’."
+  (let ((uuids (cl-rest (assoc "UUIDs" properties)))
 		(uuid-alist))
 	(when uuids
 	  (dolist (id uuids)
 		(let ((desc (or (bluetooth--parse-service-class-uuid id)
 						(list id))))
-		  (push (list id desc) uuid-alist))))
-	(nreverse uuid-alist)))
+		  (push (list id desc) uuid-alist)))
+	  (nreverse uuid-alist))))
 
 
 ;;;; mode entry command
@@ -662,7 +663,7 @@ scanning the bus, displaying device info etc."
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
   (declare (indent defun))
-  `(let* ((dev (gethash (car (last (split-string ,device "/")))
+  `(let* ((dev (gethash (cl-first (last (split-string ,device "/")))
 						bluetooth--device-info))
 		  (alias (or (bluetooth-device-property dev "Alias")
 					 (replace-regexp-in-string "_" ":" dev nil nil nil 4))))
@@ -1664,8 +1665,8 @@ scanning the bus, displaying device info etc."
 	(when (string-match uuid-re uuid)
 	  (let ((service-id (string-to-number (match-string 1 uuid) 16)))
 		(or (gethash service-id
-					 (cdr (-find (lambda (x) (>= service-id (car x)))
-								 bluetooth--uuids)))
+					 (cl-rest (--first (>= service-id (cl-first it))
+									   bluetooth--uuids)))
 			(list  (format "#x%08x" service-id) "unknown"))))))
 
 (defun bluetooth--parse-class (class)
@@ -1689,15 +1690,15 @@ scanning the bus, displaying device info etc."
 (defun bluetooth--class-parse-bitfield (bitfield data)
   "Parse BITFIELD using DATA as specification."
   (or (delq nil (mapcar (lambda (x)
-						  (if (/= 0 (logand bitfield (lsh 1 (car x))))
-							  (cdr x)
+						  (if (/= 0 (logand bitfield (lsh 1 (cl-first x))))
+							  (cl-rest x)
 							nil))
 						data))
 	  "unknown"))
 
 (defun bluetooth--class-parse-major (field data)
   "Parse major class FIELD using DATA as specification."
-  (or (car (alist-get field data))
+  (or (cl-first (alist-get field data))
 	  "unknown"))
 
 (defun bluetooth--class-parse-value (field data)
@@ -1707,15 +1708,17 @@ scanning the bus, displaying device info etc."
 
 (defun bluetooth--class-parse-peripheral (field data)
   "Parse peripheral class FIELD using DATA as specification."
-  (or (list (bluetooth--class-parse-value (logand (caar data) field)
-										  (cdar data))
-			(bluetooth--class-parse-value (logand (caadr data) field)
-										  (cdadr data)))
-	  "unknown"))
+  (-let (((cat-mask . categories) (cl-first data))
+		 ((sub-mask . sub-groups) (cl-second data)))
+	(or (list (bluetooth--class-parse-value (logand cat-mask field)
+											categories)
+			  (bluetooth--class-parse-value (logand sub-mask field)
+											sub-groups))
+		"unknown")))
 
 (defun bluetooth--class-get-minor (field data)
   "Get the minor field spec for FIELD using DATA as specification."
-  (symbol-value (cdr (alist-get field data))))
+  (symbol-value (cl-rest (alist-get field data))))
 
 
 ;;;; Bluetooth company IDs
