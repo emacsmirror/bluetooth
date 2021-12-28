@@ -347,6 +347,10 @@ profiles."
 
 (defun bluetooth--device-property (device prop-name)
   (cdr (assoc prop-name (bluetooth-device-properties device))))
+(defun bluetooth--adapters ()
+  "Return a list of bluetooth adapters."
+  (dbus-introspect-get-node-names
+   bluetooth-bluez-bus bluetooth--service bluetooth--root))
 
 (defun bluetooth--get-devices ()
   "Return a list of bluetooth adapters and devices connected to them."
@@ -448,7 +452,7 @@ as they are used to gather the information from Bluez.")
 					((eq :adapter api)
 					 (concat bluetooth--root
 							 "/"
-							 (caar (bluetooth--get-devices))))
+							 (cl-first (bluetooth--adapters))))
 					(t nil)))
 		(interface (alist-get api bluetooth--interfaces)))
 	(when path
