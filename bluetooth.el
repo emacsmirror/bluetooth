@@ -4201,7 +4201,7 @@ scanning the bus, displaying device info etc."
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
 	  (let ((props (bluetooth-device-properties dev-id)))
 		(bluetooth--ins-heading "Bluetooth device info\n\n")
-		(--map (bluetooth--ins-attr props it)
+		(mapc (lambda (it) (bluetooth--ins-attr props it))
 			   '("Alias" "Address" "AddressType" "Paired" "Trusted"
 				 "Blocked" "LegacyPairing" "Connected" "Modalias"
 				 "ServicesResolved" "WakeAllowed" "Adapter"))
@@ -4220,7 +4220,7 @@ scanning the bus, displaying device info etc."
 		 (props (bluetooth--adapter-properties adapter)))
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
 	  (bluetooth--ins-heading "Bluetooth adapter info\n\n")
-	  (--map (bluetooth--ins-attr props it)
+	  (mapc (lambda (it) (bluetooth--ins-attr props it))
 			 '("Alias" "Address" "AddressType" "Powered" "Discoverable"
 			   "DiscoverableTimeout" "Pairable" "PairableTimeout"
 			   "Discovering" "Roles" "Modalias"))
