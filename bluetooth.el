@@ -643,7 +643,7 @@ scanning the bus, displaying device info etc."
 	  (bluetooth-mode)
 	  (setq bluetooth--device-info (make-hash-table :test #'equal))
 	  (bluetooth--update-device-info)
-	  (bluetooth--register-agent)
+	  (setq bluetooth--method-objects (bluetooth--register-agent))
 	  (cl-pushnew bluetooth--mode-info mode-line-process)
 	  (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
 	  (setq imenu-create-index-function #'bluetooth--create-imenu-index)
@@ -754,21 +754,21 @@ scanning the bus, displaying device info etc."
   (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
 				   "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
 				   "RequestAuthorization" "AuthorizeService" "Cancel")))
-	(setq bluetooth--method-objects
-		  (cl-loop for method in methods
-				   for fname = (bluetooth--function-name method "-")
-				   collect (dbus-register-method bluetooth-bluez-bus
-												 dbus-service-emacs
-												 bluetooth--own-path
-												 (alist-get
-												  :agent
-												  bluetooth--interfaces)
-												 method (intern fname) t))))
-  (dbus-register-service :session dbus-service-emacs)
-  (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
-					(alist-get :agent-manager bluetooth--interfaces)
-					"RegisterAgent"
-					:object-path bluetooth--own-path "KeyboardDisplay"))
+	(prog1 
+		(cl-loop for method in methods
+				 for fname = (bluetooth--function-name method "-")
+				 collect (dbus-register-method bluetooth-bluez-bus
+											   dbus-service-emacs
+											   bluetooth--own-path
+											   (alist-get
+												:agent
+												bluetooth--interfaces)
+											   method (intern fname) t))
+	  (dbus-register-service :session dbus-service-emacs)
+	  (dbus-call-method bluetooth-bluez-bus bluetooth--service bluetooth--root
+						(alist-get :agent-manager bluetooth--interfaces)
+						"RegisterAgent"
+						:object-path bluetooth--own-path "KeyboardDisplay"))))
 
 
 ;;;; service and class UUID definitions
