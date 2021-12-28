@@ -101,13 +101,13 @@ in active and inactive state of a property."
 	(bluetooth-property-inactive-text property)))
 
 (defvar bluetooth--mode-state `(("Powered" . ,(make-bluetooth-property
-                                               :inactive-text "off"))
+											   :inactive-text "off"))
 								("Discoverable" . ,(make-bluetooth-property
 													:active-text "discoverable"))
 								("Pairable" . ,(make-bluetooth-property
 												:active-text "pairable"))
 								("Discovering" . ,(make-bluetooth-property
-                                                   :active-text "scan")))
+												   :active-text "scan")))
   "Mode line adapter state information.
 
 The state information list defines the kind of adapter state
@@ -443,7 +443,8 @@ as they are used to gather the information from Bluez.")
   (let (dev-list)
 	(maphash (lambda (dev dev-info)
 			   (push (list dev
-						   (cl-map 'vector (lambda (key) (bluetooth--dev-state key dev-info))
+						   (cl-map 'vector (lambda (key)
+											 (bluetooth--dev-state key dev-info))
 								   (mapcar #'cl-first bluetooth--list-format)))
 					 dev-list))
 			 bluetooth--device-info)
@@ -2272,7 +2273,7 @@ scanning the bus, displaying device info etc."
 	  #x021C "Mobicomm Inc"
 	  #x021D "Edamic"
 	  #x021E "Goodnet, Ltd"
-	  #x021F "Luster Leaf Products  Inc"
+	  #x021F "Luster Leaf Products	Inc"
 	  #x0220 "Manus Machina BV"
 	  #x0221 "Mobiquity Networks Inc"
 	  #x0222 "Praxis Dynamics"
