@@ -87,15 +87,33 @@ This is usually `:system' if bluetoothd runs as a system service, or
 
 (put 'bluetooth--mode-info 'risky-local-variable t)
 
-(defvar bluetooth--mode-state '(("Powered" . (nil nil "off"))
-								("Discoverable" . (nil "discoverable" nil))
-								("Pairable" . (nil "pairable" nil))
-								("Discovering" . (nil "scan" nil)))
+(cl-defstruct bluetooth-property
+  "Bluetooth state information for the mode line with texts shown
+in active and inactive state of a property."
+  active-p
+  (active-text nil :read-only t)
+  (inactive-text nil :read-only t))
+
+(defun bluetooth-property-text (property)
+  "Return the text describing the state of PROPERTY."
+  (if (bluetooth-property-active-p property)
+	  (bluetooth-property-active-text property)
+	(bluetooth-property-inactive-text property)))
+
+(defvar bluetooth--mode-state `(("Powered" . ,(make-bluetooth-property
+                                               :inactive-text "off"))
+								("Discoverable" . ,(make-bluetooth-property
+													:active-text "discoverable"))
+								("Pairable" . ,(make-bluetooth-property
+												:active-text "pairable"))
+								("Discovering" . ,(make-bluetooth-property
+                                                   :active-text "scan")))
   "Mode line adapter state information.
 
 The state information list defines the kind of adapter state
 displayed in the mode-line.  The first element of each sub-list
-is an adapter property, the second is a list containing the
+is an adapter property, the second is a ‘bluetooth-property’
+structure containing the
  - current status of the item (t or nil),
  - string displayed if the property is non-nil,
  - string displayed if the property is nil.
@@ -556,10 +574,8 @@ This function only uses the first adapter reported by Bluez."
 (defun bluetooth--mode-info ()
   "Update the mode info display."
   (let ((info (mapconcat #'identity
-						 (-keep (lambda (x) (if (cl-second x)
-										   (cl-third x)
-										 (cl-fourth x)))
-								bluetooth--mode-state)
+						 (--keep (bluetooth-property-text (cl-rest it))
+								 bluetooth--mode-state)
 						 ",")))
 	(unless (string-blank-p info)
 	  (concat " [" info "]"))))
@@ -569,11 +585,11 @@ This function only uses the first adapter reported by Bluez."
 Only adapter properties are considered.  If an adapter property changes,
 update the status display accordingly."
   (when (string= interface (alist-get :adapter bluetooth--interfaces))
-	(dolist (elt data)
-	  (let ((prop (car elt))
-			(value (caadr elt)))
-		(when-let (state (cdr (assoc prop bluetooth--mode-state)))
-		  (setcar state value))))))
+	(mapc (lambda (elt)
+			(cl-destructuring-bind (prop (value)) elt
+			  (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
+				(setf (bluetooth-property-active-p property) value))))
+		  data)))
 
 (defun bluetooth--register-signal-handler ()
   "Register a signal handler for adapter property changes.
