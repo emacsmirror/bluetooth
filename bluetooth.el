@@ -150,9 +150,10 @@ The generated function name has the form `bluetoothPREFIX-NAME'."
 (defun bluetooth--choose-uuid ()
   "Ask for a UUID and return it in a form suitable for ‘interactive’."
   (if current-prefix-arg
-	  (let* ((dev-id (tabulated-list-get-id))
+	  (let* ((device (gethash (tabulated-list-get-id)
+							  bluetooth--device-info))
 			 (uuids (bluetooth--device-uuids
-					 (bluetooth--device-properties dev-id)))
+					 (bluetooth-device-properties device)))
 			 (profile (completing-read "Profile: "
 									   (mapcar (lambda (x)
 												 (concat (caadr x)
@@ -334,36 +335,34 @@ profiles."
 
 ;;;; internal functions
 
-;; This function returns a list of bluetooth adapters and devices
-;; in the form
-;; (("hci0"
-;;   ("dev_78_AB_BB_DA_6C_7E" "dev_90_F1_AA_06_24_72")))
-;;
-;; The first element of each (sub-) list is an adapter name, followed
-;; by a list of devices known to this adapter.
 (cl-defstruct bluetooth-device
+  "A bluetooth device.  This structure holds all the device
+properties."
   (id nil :read-only t)
   properties)
 
-(defun bluetooth--device-property (device prop-name)
-  (cdr (assoc prop-name (bluetooth-device-properties device))))
+(defun bluetooth-device-property (device prop-name)
+  "Return DEVICE's property PROP-NAME."
+  (cl-rest (assoc prop-name (bluetooth-device-properties device))))
+
 (defun bluetooth--adapters ()
   "Return a list of bluetooth adapters."
   (dbus-introspect-get-node-names
    bluetooth-bluez-bus bluetooth--service bluetooth--root))
 
-(defun bluetooth--get-devices ()
+;; TODO don't return the adapter names, as they are in the devices?
+;; do this per adapter?
+(defun bluetooth--devices ()
   "Return a list of bluetooth adapters and devices connected to them."
   (mapcar (lambda (a)
 			(list a (dbus-introspect-get-node-names
 					 bluetooth-bluez-bus bluetooth--service
 					 (concat bluetooth--root "/" a))))
-		  (dbus-introspect-get-node-names
-		   bluetooth-bluez-bus bluetooth--service bluetooth--root)))
+		  (bluetooth--adapters)))
 
 (defun bluetooth--dev-state (key device)
   "Return state information regarding KEY for DEVICE."
-  (let ((value (bluetooth--device-property device key)))
+  (let ((value (bluetooth-device-property device key)))
 	(cond ((stringp value) value)
 		  ((null value) "no")
 		  (t "yes"))))
@@ -391,6 +390,7 @@ NOTE: the strings MUST correspond to Bluez device properties
 as they are used to gather the information from Bluez.")
 
 (defun bluetooth--create-device (adapter dev-id)
+  "Create a bluetooth device struct for DEV-ID on ADAPTER."
   (let* ((path (mapconcat #'identity
 						  (list bluetooth--root adapter dev-id)
 						  "/"))
@@ -401,15 +401,15 @@ as they are used to gather the information from Bluez.")
 										  :device bluetooth--interfaces))))
 	(make-bluetooth-device :id dev-id :properties props)))
 
-
 (defun bluetooth--update-device-info ()
+  "Update the bluetooth devices list."
   (mapc (lambda (devlist)
 		  (mapc (lambda (dev)
 				  (puthash dev
 						   (bluetooth--create-device (cl-first devlist) dev)
 						   bluetooth--device-info))
 				(cl-second devlist)))
-		(bluetooth--get-devices)))
+		(bluetooth--devices)))
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
@@ -455,11 +455,12 @@ as they are used to gather the information from Bluez.")
 		   do (forward-line 1)
 		   collect (cons (elt entry 0) pos)))
 
+;; TODO operate on device structs, not ids
 (defun bluetooth--call-method (dev-id api function &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((path (cond ((and (eq :device api)
 						  (not (null dev-id)))
-					 (concat (bluetooth--device-property
+					 (concat (bluetooth-device-property
 							  (gethash dev-id bluetooth--device-info)
 							  "Adapter")
 							 "/" dev-id))
@@ -588,12 +589,6 @@ adapter reported by Bluez."
 								(alist-get :adapter
 										   bluetooth--interfaces)))))
 
-(defun bluetooth--device-properties (dev-id)
-  "Return all properties of device DEV-ID."
-  (bluetooth--call-method
-   (car (last (split-string dev-id "/"))) :device
-   #'dbus-get-all-properties))
-
 (defun bluetooth--device-uuids (properties)
   "Extract a UUID alist from device PROPERTIES.
 Each list element contains a UUID as the key and the
@@ -648,7 +643,7 @@ scanning the bus, displaying device info etc."
   (declare (indent defun))
   `(let* ((dev (gethash (car (last (split-string ,device "/")))
 						bluetooth--device-info))
-		  (alias (or (bluetooth--device-property dev "Alias")
+		  (alias (or (bluetooth-device-property dev "Alias")
 					 (replace-regexp-in-string "_" ":" dev nil nil nil 4))))
 	 ,@body))
 
