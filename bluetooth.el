@@ -76,6 +76,9 @@ This is usually `:system' if bluetoothd runs as a system service, or
 (defconst bluetooth-buffer-name "*Bluetooth*"
   "Name of the buffer in which to list bluetooth devices.")
 
+(defconst bluetooth-info-buffer-name "*Bluetooth info*"
+  "Name of the bluetooth info buffer.")
+
 (defconst bluetooth--mode-name "Bluetooth" "Pretty print mode name.")
 
 (defvar bluetooth--mode-info
@@ -273,6 +276,7 @@ profiles."
 	(define-key map [?D] #'bluetooth-toggle-discoverable)
 	(define-key map [?x] #'bluetooth-toggle-pairable)
 	(define-key map [?i] #'bluetooth-show-device-info)
+	(define-key map [?A] #'bluetooth-show-adapter-info)
 	(define-key map [?k] #'bluetooth-remove-device)
 	(define-key map [?<] #'bluetooth-beginning-of-list)
 	(define-key map [?>] #'bluetooth-end-of-list)
@@ -297,6 +301,9 @@ profiles."
 	(define-key map [menu-bar bluetooth toggle-powered]
 	  '(menu-item "Toggle powered" bluetooth-toggle-powered
 				  :help "Toggle power supply of adapter"))
+	(define-key map [menu-bar bluetooth show-adapter-info]
+	  '(menu-item "Show adapter info" bluetooth-show-adapter-info
+				  :help "Show bluetooth adapter info"))
 
 	(define-key map [menu-bar bluetooth device show-info]
 	  '(menu-item "Show device info" bluetooth-show-device-info
@@ -4106,73 +4113,114 @@ scanning the bus, displaying device info etc."
   "Bluetooth manufacturer IDs.")
 
 
-;;;; device info display
+;;;; device and adapter info display
+
+(defun bluetooth--ins-heading (heading)
+  "Insert HEADING in info view."
+  (insert (propertize heading 'face
+					  'bluetooth-info-heading)))
+
+(defun bluetooth--ins-line (attr text)
+  "Insert attribute ATTR and corresponding TEXT in info view."
+  (insert (propertize (format "%21s" attr)
+					  'face
+					  'bluetooth-info-attribute)
+		  ": " text "\n"))
+
+(defun bluetooth--ins-attr (props attr)
+  "Insert information on attribute ATTR in properties alist PROPS."
+  (let ((value (cl-rest (assoc attr props))))
+	(bluetooth--ins-line attr
+						 (cond ((stringp value) value)
+							   ((numberp value)
+								(number-to-string value))
+							   ((consp value)
+								(mapconcat #'identity value ", "))
+							   ((null value) "no")
+							   (t "yes")))))
+
+(defun bluetooth--ins-classes (props)
+  "Insert device classes from properties alist PROPS."
+  (when-let (class (cl-rest (assoc "Class" props)))
+	(let ((p-class (bluetooth--parse-class class)))
+	  (bluetooth--ins-heading "\nService and device classes\n")
+	  (--map (cl-destructuring-bind (type value) it
+			   (if (listp value)
+				   (bluetooth--ins-line type
+										(mapconcat #'identity
+												   value
+												   ", "))
+				 (bluetooth--ins-line type value)))
+			 p-class))))
+
+(defun bluetooth--ins-services (props)
+  "Insert device services from properties alist PROPS."
+  (when (cl-rest (assoc "UUIDs" props))
+	(bluetooth--ins-heading "\nServices (UUIDs)\n")
+	(mapc (lambda (id-pair)
+			(--zip-with (insert (format it other))
+						'("%36s  " "%s " "(%s)")
+						(cl-second id-pair))
+			(insert "\n"))
+		  (bluetooth--device-uuids props))))
+
+(defun bluetooth--ins-rf-info (props)
+  "Insert rf information from properties alist PROPS."
+  (let* ((rssi (cl-rest (assoc "RSSI" props)))
+		 (tx-power (cl-rest (assoc "TxPower" props)))
+		 (loss (when (and rssi tx-power) (- tx-power rssi))))
+	(--zip-with (when other
+				  (bluetooth--ins-line (cl-first it)
+									   (format (cl-second it) other)))
+				'(("RSSI" "%4d dBm") ("Tx Power" "%4d dBm")
+				  ("Path loss" "%4d dB"))
+				(list rssi tx-power loss))))
+
+(defun bluetooth--ins-mfc-info (props)
+  "Insert manufacturer information from properties alist PROPS."
+  (when-let (mf-info (cl-second (assoc "ManufacturerData" props)))
+	(bluetooth--ins-line "Manufacturer"
+						 (or (gethash (cl-first mf-info)
+									  bluetooth--manufacturer-ids)
+							 "unknown"))))
 
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
   (interactive)
-  (cl-labels ((ins-heading (text)
-						   (insert (propertize text 'face
-											   'bluetooth-info-heading)))
-			  (ins-line (attr text)
-						(insert (propertize (format "%15s" attr)
-											'face
-											'bluetooth-info-attribute))
-						(insert ": " text "\n"))
-			  (ins-attr (dev-id attr)
-						(when-let (value (bluetooth--device-property dev-id
-																	 attr))
-						  (ins-line attr value))))
-	(let ((dev-id (gethash (tabulated-list-get-id)
-						   bluetooth--device-info)))
-	  (when dev-id
-		(with-current-buffer-window
-			"*Bluetooth device info*" nil nil
-		  (ins-heading "Bluetooth device info\n\n")
-		  (ins-attr dev-id "Alias")
-		  (ins-attr dev-id "Address")
-		  (ins-attr dev-id "AddressType")
-		  (let ((rssi (bluetooth--device-property dev-id "RSSI"))
-				(tx-power (bluetooth--device-property dev-id "TxPower")))
-			(when rssi
-			  (ins-line "RSSI" (format "%4d dBm" rssi)))
-			(when tx-power
-			  (ins-line "Tx Power" (format "%4d dBm" tx-power)))
-			(when (and rssi tx-power)
-			  (ins-line "Path loss" (format "%4d dB" (- tx-power rssi)))))
-		  (when-let (mf-info (car (bluetooth--device-property dev-id
-															  "ManufacturerData")))
-			(ins-line "Manufacturer" (or (gethash (car mf-info)
-												  bluetooth--manufacturer-ids)
-										 "unknown")))
-		  (when-let (class (bluetooth--device-property dev-id "Class"))
-			(let ((p-class (bluetooth--parse-class class)))
-			  (ins-heading "\nService and device classes\n")
-			  (dolist (x p-class)
-				(insert (propertize
-						 (format "%s:\n"  (car x))
-						 'face 'bluetooth-info-attribute))
-				(let ((services (cadr x)))
-				  (if (listp services)
-					  (dolist (elt services)
-						(insert (format "%16s %s\n" "" elt)))
-					(insert (format "%16s %s\n" "" services)))))))
-		  (when (bluetooth--device-property dev-id "UUIDs")
-			(ins-heading "\nServices (UUIDs)\n")
-			(mapc (lambda (id-pair)
-					(let ((desc (cl-second id-pair)))
-					  (let ((service (cl-first desc))
-							(long-desc (cl-second desc))
-							(short-desc (cl-third desc)))
-						(when service
-						  (insert (format "%36s  " service)))
-						(when long-desc
-						  (insert (format "%s " long-desc)))
-						(when short-desc
-						  (insert (format "(%s)" short-desc)))
-						(insert "\n"))))
-				  (bluetooth--device-uuids (bluetooth-device-properties dev-id))))
-		  (special-mode))))))
+  (when-let (dev-id (gethash (tabulated-list-get-id)
+							 bluetooth--device-info))
+	(with-current-buffer-window bluetooth-info-buffer-name nil nil
+	  (let ((props (bluetooth-device-properties dev-id)))
+		(bluetooth--ins-heading "Bluetooth device info\n\n")
+		(--map (bluetooth--ins-attr props it)
+			   '("Alias" "Address" "AddressType" "Paired" "Trusted"
+				 "Blocked" "LegacyPairing" "Connected" "Modalias"
+				 "ServicesResolved" "WakeAllowed" "Adapter"))
+		(funcall (-juxt #'bluetooth--ins-rf-info
+						#'bluetooth--ins-mfc-info
+						#'bluetooth--ins-classes
+						#'bluetooth--ins-services)
+				 props)
+		(special-mode)))))
+
+;; TODO extend this to multiple adapters
+(defun bluetooth-show-adapter-info ()
+  "Show detailed information on the (first) bluetooth adapter."
+  (interactive)
+  (-let (((adapter props) (bluetooth--adapter-properties)))
+	(with-current-buffer-window bluetooth-info-buffer-name nil nil
+	  (bluetooth--ins-heading "Bluetooth adapter info\n\n")
+	  (--map (bluetooth--ins-attr props it)
+			 '("Alias" "Address" "AddressType" "Powered" "Discoverable"
+			   "DiscoverableTimeout" "Pairable" "PairableTimeout"
+			   "Discovering" "Roles" "Modalias"))
+	  (bluetooth--ins-line "Adapter" (concat bluetooth--root "/"
+											 adapter))
+	  (funcall (-juxt #'bluetooth--ins-mfc-info
+					  #'bluetooth--ins-classes
+					  #'bluetooth--ins-services)
+			   props)
+	  (special-mode))))
 
 (provide 'bluetooth)
 
