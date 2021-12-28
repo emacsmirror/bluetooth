@@ -368,6 +368,20 @@ profiles."
 		  ((null value) "no")
 		  (t "yes"))))
 
+;; TODO extend to multiple adapters
+(defun bluetooth--adapter-properties ()
+  "Return the properties of the first bluetooth adapter.
+This function evaluates to a list of the form ‘(ADAPTER
+PROPERTIES)’, where ADAPTER is the name (not the whole path) of
+the first adapter, and PROPERTIES is an alist of attribute/value
+pairs."
+  (let ((adapter (cl-first (bluetooth--adapters))))
+	(list adapter
+		  (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
+								   (concat bluetooth--root "/" adapter)
+								   (alist-get :adapter
+											  bluetooth--interfaces)))))
+
 (defconst bluetooth--list-format
   [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
    ("Blocked" 9 t) ("Trusted" 9 t)]
@@ -487,19 +501,14 @@ as they are used to gather the information from Bluez.")
 
 ;; end of worker function definitions
 
+;; TODO extend to multiple adapters
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
-  (let* ((adapters (dbus-introspect-get-node-names
-					bluetooth-bluez-bus bluetooth--service bluetooth--root))
-		 (resp (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
-										(concat bluetooth--root "/"
-												(car adapters))
-										(alist-get :adapter
-												   bluetooth--interfaces)))
-		 (info (mapcar (lambda (elt)
-						 (list (car elt) (list (cdr (assoc (car elt) resp)))))
-					   bluetooth--mode-state)))
+  (let* ((props (cl-second (bluetooth--adapter-properties)))
+		 (info (--map (list (cl-first it)
+							(list (cl-rest (assoc (cl-first it) props))))
+					  bluetooth--mode-state)))
 	(bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
 								   info)))
 
