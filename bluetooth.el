@@ -175,14 +175,16 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
 					 (bluetooth-device-properties device)))
 			 (profile (completing-read "Profile: "
 									   (mapcar (lambda (x)
-												 (concat (caadr x)
-														 ", "
-														 (cadadr x)))
+												 (let ((desc (cl-second x)))
+												   (concat (cl-first desc)
+														   ", "
+														   (cl-second desc))))
 											   uuids)
 									   nil t)))
 		(list (cl-rassoc profile uuids
 						 :key (lambda (x)
-								(concat (caar x) ", " (cadar x)))
+								(let ((desc (cl-first x)))
+								  (concat (cl-first desc) ", " (cl-second desc))))
 						 :test #'string=)))
 	'(nil)))
 
