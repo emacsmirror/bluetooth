@@ -390,7 +390,18 @@ properties."
 		  ((null value) "no")
 		  (t "yes"))))
 
-;; TODO extend to multiple adapters
+(defun bluetooth--create-device (adapter dev-id)
+  "Create a bluetooth device struct for DEV-ID on ADAPTER."
+  (let* ((path (mapconcat #'identity
+						  (list bluetooth--root adapter dev-id)
+						  "/"))
+		 (props (dbus-get-all-properties bluetooth-bluez-bus
+										 bluetooth--service
+										 path
+										 (alist-get
+										  :device bluetooth--interfaces))))
+	(make-bluetooth-device :id dev-id :properties props)))
+
 (defun bluetooth--adapter-properties (adapter)
   "Return the properties of bluetooth ADAPTER.
 This function evaluates to an alist of attribute/value pairs."
@@ -406,18 +417,6 @@ This function evaluates to an alist of attribute/value pairs."
 
 NOTE: the strings MUST correspond to Bluez device properties
 as they are used to gather the information from Bluez.")
-
-(defun bluetooth--create-device (adapter dev-id)
-  "Create a bluetooth device struct for DEV-ID on ADAPTER."
-  (let* ((path (mapconcat #'identity
-						  (list bluetooth--root adapter dev-id)
-						  "/"))
-		 (props (dbus-get-all-properties bluetooth-bluez-bus
-										 bluetooth--service
-										 path
-										 (alist-get
-										  :device bluetooth--interfaces))))
-	(make-bluetooth-device :id dev-id :properties props)))
 
 (defun bluetooth--update-device-info ()
   "Update the bluetooth devices list."
