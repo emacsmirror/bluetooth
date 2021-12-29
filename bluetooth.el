@@ -369,12 +369,12 @@ properties."
   "Return DEVICE's property PROP-NAME."
   (cl-rest (assoc prop-name (bluetooth-device-properties device))))
 
-(defun bluetooth--adapters ()
+(defun bluetooth--query-adapters ()
   "Return a list of bluetooth adapters."
   (dbus-introspect-get-node-names
    bluetooth-bluez-bus bluetooth--service bluetooth--root))
 
-(defun bluetooth--devices (adapter)
+(defun bluetooth--query-devices (adapter)
   "Return a list of bluetooth devices connected to ADAPTER."
   (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth--service
 								  (concat bluetooth--root "/" adapter)))
@@ -425,8 +425,8 @@ as they are used to gather the information from Bluez.")
 				   (puthash dev
 							(bluetooth--create-device adapter dev)
 							bluetooth--device-info))
-				 (bluetooth--devices adapter)))
-		(bluetooth--adapters)))
+				 (bluetooth--query-devices adapter)))
+		(bluetooth--query-adapters)))
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
@@ -485,7 +485,7 @@ as they are used to gather the information from Bluez.")
 					((eq :adapter api)
 					 (concat bluetooth--root
 							 "/"
-							 (cl-first (bluetooth--adapters))))
+							 (cl-first (bluetooth--query-adapters))))
 					(t nil)))
 		(interface (alist-get api bluetooth--interfaces)))
 	(when path
@@ -495,9 +495,6 @@ as they are used to gather the information from Bluez.")
 						   (concat path "/" dev-id)
 						 x))
 					 args)))))
-
-;; The following functions are the workers for the commands.
-;; They are used by `bluetooth--make-commands'.
 
 (defun bluetooth--dbus-method (method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
@@ -521,13 +518,10 @@ as they are used to gather the information from Bluez.")
 	(bluetooth--call-method dev-id api #'dbus-set-property property arg)
 	(bluetooth--update-list)))
 
-;; end of worker function definitions
-
-;; TODO extend to multiple adapters
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
 This function only uses the first adapter reported by Bluez."
-  (let* ((adapter (cl-first (bluetooth--adapters)))
+  (let* ((adapter (cl-first (bluetooth--query-adapters)))
 		 (props (bluetooth--adapter-properties adapter))
 		 (info (--map (list (cl-first it)
 							(list (cl-rest (assoc (cl-first it) props))))
@@ -587,13 +581,12 @@ update the status display accordingly."
 				(setf (bluetooth-property-active-p property) value))))
 		  data)))
 
-;; TODO extend to multiple adapters
 (defun bluetooth--register-signal-handler ()
   "Register a signal handler for adapter property changes.
 
 This function registers a signal handler only for the first
 adapter reported by Bluez."
-  (let ((adapter (cl-first (bluetooth--adapters))))
+  (let ((adapter (cl-first (bluetooth--query-adapters))))
 	(dbus-register-signal bluetooth-bluez-bus
 						  nil
 						  (concat bluetooth--root "/"
@@ -4199,9 +4192,9 @@ scanning the bus, displaying device info etc."
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
   (interactive)
-  (when-let (dev-id (bluetooth--device (tabulated-list-get-id)))
+  (when-let (device (bluetooth--device (tabulated-list-get-id)))
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
-	  (let ((props (bluetooth-device-properties dev-id)))
+	  (let ((props (bluetooth-device-properties device)))
 		(bluetooth--ins-heading "Bluetooth device info\n\n")
 		(mapc (lambda (it) (bluetooth--ins-attr props it))
 			   '("Alias" "Address" "AddressType" "Paired" "Trusted"
@@ -4214,11 +4207,10 @@ scanning the bus, displaying device info etc."
 				 props)
 		(special-mode)))))
 
-;; TODO extend this to multiple adapters
 (defun bluetooth-show-adapter-info ()
   "Show detailed information on the (first) bluetooth adapter."
   (interactive)
-  (let* ((adapter (cl-first (bluetooth--adapters)))
+  (let* ((adapter (cl-first (bluetooth--query-adapters)))
 		 (props (bluetooth--adapter-properties adapter)))
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
 	  (bluetooth--ins-heading "Bluetooth adapter info\n\n")
