@@ -457,7 +457,7 @@ as they are used to gather the information from Bluez.")
   "Major mode for managing Bluetooth devices."
   (setq tabulated-list-format bluetooth--list-format
 		tabulated-list-entries #'bluetooth--list-entries
-		tabulated-list-padding 1
+		tabulated-list-padding 0
 		tabulated-list-sort-key (cons "Alias" nil))
   (tabulated-list-init-header)
   (tabulated-list-print)
