@@ -169,8 +169,7 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
 (defun bluetooth--choose-uuid ()
   "Ask for a UUID and return it in a form suitable for ‘interactive’."
   (if current-prefix-arg
-	  (let* ((device (gethash (tabulated-list-get-id)
-							  bluetooth--device-info))
+	  (let* ((device (bluetooth--device (tabulated-list-get-id)))
 			 (uuids (bluetooth--device-uuids
 					 (bluetooth-device-properties device)))
 			 (profile (completing-read "Profile: "
@@ -380,6 +379,10 @@ properties."
   (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth--service
 								  (concat bluetooth--root "/" adapter)))
 
+(defun bluetooth--device (device-id)
+  "Return the device struct for DEVICE-ID."
+  (gethash device-id bluetooth--device-info))
+
 (defun bluetooth--dev-state (key device)
   "Return state information regarding KEY for DEVICE."
   (let ((value (bluetooth-device-property device key)))
@@ -477,7 +480,7 @@ as they are used to gather the information from Bluez.")
   (let ((path (cond ((and (eq :device api)
 						  (not (null dev-id)))
 					 (concat (bluetooth-device-property
-							  (gethash dev-id bluetooth--device-info)
+							  (bluetooth--device dev-id)
 							  "Adapter")
 							 "/" dev-id))
 					((eq :adapter api)
@@ -657,8 +660,7 @@ scanning the bus, displaying device info etc."
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
   (declare (indent defun))
-  `(let* ((dev (gethash (cl-first (last (split-string ,device "/")))
-						bluetooth--device-info))
+  `(let* ((dev (bluetooth--device (cl-first (last (split-string ,device "/")))))
 		  (alias (or (bluetooth-device-property dev "Alias")
 					 (replace-regexp-in-string "_" ":" dev nil nil nil 4))))
 	 ,@body))
@@ -4198,8 +4200,7 @@ scanning the bus, displaying device info etc."
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
   (interactive)
-  (when-let (dev-id (gethash (tabulated-list-get-id)
-							 bluetooth--device-info))
+  (when-let (dev-id (bluetooth--device (tabulated-list-get-id)))
 	(with-current-buffer-window bluetooth-info-buffer-name nil nil
 	  (let ((props (bluetooth-device-properties dev-id)))
 		(bluetooth--ins-heading "Bluetooth device info\n\n")
