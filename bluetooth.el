@@ -397,14 +397,15 @@ properties."
   "Return the device struct for DEVICE-ID."
   (gethash device-id bluetooth--device-info))
 
-(defun bluetooth--dev-state (key device)
+(defun bluetooth--device-state (key device)
   "Return state information regarding KEY for DEVICE."
   (let ((value (bluetooth-device-property device key)))
 	(cond ((stringp value) value)
 		  ((null value) "no")
 		  (t "yes"))))
 
-(defun bluetooth--create-device (adapter dev-id)
+;; TODO install signal handler if the device is paired
+(defun bluetooth--device-create (adapter dev-id)
   "Create a bluetooth device struct for DEV-ID on ADAPTER."
   (let* ((path (mapconcat #'identity
 						  (list bluetooth--root adapter dev-id)
@@ -415,6 +416,20 @@ properties."
 										 (alist-get
 										  :device bluetooth--interfaces))))
 	(make-bluetooth-device :id dev-id :properties props)))
+
+;; TODO remove signal handler
+(defun bluetooth--device-remove (dev-id)
+  "Remove the device with id DEV-ID from the device info."
+  (remhash dev-id bluetooth--device-info))
+
+(defun bluetooth--device-add (dev-id device)
+  "Add bluetooth DEVICE with id DEV-ID to device info."
+  (puthash dev-id device bluetooth--device-info))
+
+(defun bluetooth--device-update (dev-id device)
+  "Update device info for id DEV-ID with data in DEVICE."
+  (setf (bluetooth-device-properties (bluetooth--device dev-id))
+		(bluetooth-device-properties device)))
 
 (defun bluetooth--adapter-properties (adapter)
   "Return the properties of bluetooth ADAPTER.
@@ -432,27 +447,45 @@ This function evaluates to an alist of attribute/value pairs."
 NOTE: the strings MUST correspond to Bluez device properties
 as they are used to gather the information from Bluez.")
 
-(defun bluetooth--update-device-info ()
-  "Update the bluetooth devices list."
+(defun bluetooth--initialize-device-info ()
+  "Initialize bluetooth device info.  Call only once."
   (mapc (lambda (adapter)
-		   (mapc (lambda (dev)
-				   (puthash dev
-							(bluetooth--create-device adapter dev)
-							bluetooth--device-info))
-				 (bluetooth--query-devices adapter)))
+		  (mapc (lambda (dev-id)
+				  (bluetooth--device-add dev-id
+										 (bluetooth--device-create adapter
+																   dev-id)))
+				(bluetooth--query-devices adapter)))
 		(bluetooth--query-adapters)))
+
+(defun bluetooth--update-device-info (adapter)
+  "Update the bluetooth devices list for ADAPTER."
+  (let ((queried-devices (bluetooth--query-devices adapter)))
+	(let ((removed-devices (cl-set-difference (hash-table-keys
+											   bluetooth--device-info)
+											  queried-devices)))
+	  (mapc (lambda (dev-id)
+			  (bluetooth--device-remove dev-id))
+			removed-devices)
+	  (mapc (lambda (dev-id)
+			  (if-let (device (bluetooth--device dev-id))
+				  (bluetooth--device-update dev-id device)
+				(bluetooth--device-add dev-id
+									   (bluetooth--device-create adapter
+																 dev-id))))
+			queried-devices))))
 
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
-  (bluetooth--update-device-info)		; TODO this can later be removed when
+  (mapc #'bluetooth--update-device-info
+		(bluetooth--query-adapters))		; TODO this can later be removed when
 										; update is by dbus change notifications
   (let (dev-list)
 	(maphash (lambda (dev dev-info)
 			   (push (list dev
 						   (cl-map 'vector (lambda (key)
-											 (bluetooth--dev-state key dev-info))
+											 (bluetooth--device-state key dev-info))
 								   (mapcar #'cl-first bluetooth--list-format)))
 					 dev-list))
 			 bluetooth--device-info)
@@ -543,6 +576,7 @@ This function only uses the first adapter reported by Bluez."
 	(bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
 								   info)))
 
+;; TODO de-register all the signal handlers
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
   ;; This function is registered as a kill-buffer-hook, so we don't
@@ -556,6 +590,7 @@ This function only uses the first adapter reported by Bluez."
 	(dbus-unregister-object bluetooth--adapter-signal)
 	(cancel-timer bluetooth--update-timer)))
 
+;; TODO de-register all the signal handlers
 (defun bluetooth-unload-function ()
   "Clean up when the bluetooth feature is unloaded."
   (when (buffer-live-p (get-buffer bluetooth-buffer-name))
@@ -648,7 +683,7 @@ scanning the bus, displaying device info etc."
 	  (erase-buffer)
 	  (bluetooth-mode)
 	  (setq bluetooth--device-info (make-hash-table :test #'equal))
-	  (bluetooth--update-device-info)
+	  (bluetooth--initialize-device-info)
 	  (setq bluetooth--method-objects (bluetooth--register-agent))
 	  (cl-pushnew bluetooth--mode-info mode-line-process)
 	  (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
