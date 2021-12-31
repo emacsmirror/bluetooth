@@ -157,220 +157,6 @@ property and state.")
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
 
-;;;; command definitions
-
-(eval-and-compile
-  (defun bluetooth--function-name (name &optional prefix)
-	"Make a function name out of NAME and PREFIX.
-The generated function name has the form ‘bluetoothPREFIX-NAME’."
-	(let ((case-fold-search nil))
-	  (concat "bluetooth"
-			  prefix
-			  (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
-										(lambda (x) (concat "-" (downcase x)))
-										name t)))))
-
-(defun bluetooth--choose-uuid ()
-  "Ask for a UUID and return it in a form suitable for ‘interactive’."
-  (if current-prefix-arg
-	  (let* ((device (bluetooth--device (tabulated-list-get-id)))
-			 (uuids (bluetooth--device-uuids
-					 (bluetooth-device-properties device)))
-			 (profile (completing-read "Profile: "
-									   (mapcar (lambda (x)
-												 (let ((desc (cl-second x)))
-												   (concat (cl-first desc)
-														   ", "
-														   (cl-second desc))))
-											   uuids)
-									   nil t)))
-		(list (cl-rassoc profile uuids
-						 :key (lambda (x)
-								(let ((desc (cl-first x)))
-								  (concat (cl-first desc) ", " (cl-second desc))))
-						 :test #'string=)))
-	'(nil)))
-
-(defun bluetooth-connect (uuid)
-  "Connect to the Bluetooth device at point.
-When called with a prefix argument, ask for a profile and
-connect only this profile.  Otherwise, or when called
-non-interactively with UUID set to nil, connect to all profiles."
-  (interactive (bluetooth--choose-uuid))
-  (if uuid
-	  (bluetooth--dbus-method "ConnectProfile" :device (cl-first uuid))
-	(bluetooth--dbus-method "Connect" :device)))
-
-(defun bluetooth-disconnect (uuid)
-  "Disconnect the Bluetooth device at point.
-When called with a prefix argument, ask for a profile and
-disconnect only this profile.  Otherwise, or when called
-non-interactively with UUID set to nil, disconnect all
-profiles."
-  (interactive (bluetooth--choose-uuid))
-  (if uuid
-	  (bluetooth--dbus-method "DisconnectProfile" :device (cl-first uuid))
-	(bluetooth--dbus-method "Disconnect" :device)))
-
-(defun bluetooth-connect-profile ()
-  "Ask for a Bluetooth profile and connect the device at point to it."
-  (interactive)
-  (let ((prefix-arg (list 4)))
-	(command-execute #'bluetooth-connect)))
-
-(defun bluetooth-disconnect-profile ()
-  "Ask for a Bluetooth profile and disconnect the device at point from it."
-  (interactive)
-  (let ((prefix-arg (list 4)))
-	(command-execute #'bluetooth-disconnect)))
-
-
-(defmacro bluetooth-defun-method (method api docstring &rest body)
-  (declare (doc-string 3) (indent 2))
-  (let ((name (bluetooth--function-name method)))
-	`(defun ,(intern name) () ,docstring
-			(interactive)
-			(bluetooth--dbus-method ,method ,api)
-			,@body)))
-
-(defvar bluetooth--update-timer nil
-  "The bluetooth device table update timer.")
-
-(bluetooth-defun-method "StartDiscovery" :adapter
-  "Start discovery mode."
-  (setq bluetooth--update-timer
-		(run-at-time nil bluetooth-update-interval
-					 #'bluetooth--update-list)))
-
-(bluetooth-defun-method "StopDiscovery" :adapter
-  "Stop discovery mode."
-  (cancel-timer bluetooth--update-timer))
-
-(bluetooth-defun-method "Pair" :device
-  "Pair with device at point.")
-
-(defmacro bluetooth-defun-toggle (property api docstring)
-  (declare (doc-string 3) (indent 2))
-  (let ((name (bluetooth--function-name property "-toggle")))
-	`(defun ,(intern name) () ,docstring
-			(interactive)
-			(bluetooth--dbus-toggle ,property ,api))))
-
-(bluetooth-defun-toggle "Blocked" :device
-  "Mark Bluetooth device at point blocked.")
-(bluetooth-defun-toggle "Trusted" :device
-  "Mark Bluetooth device at point trusted.")
-(bluetooth-defun-toggle "Powered" :adapter
-  "Toggle power supply of adapter.")
-(bluetooth-defun-toggle "Discoverable" :adapter
-  "Toggle discoverable mode.")
-(bluetooth-defun-toggle "Pairable" :adapter
-  "Toggle pairable mode.")
-
-(defun bluetooth-set-alias (name)
-  "Set alias of Bluetooth device at point to NAME."
-  (interactive "MAlias (empty to reset): ")
-  (bluetooth--dbus-set "Alias" name :device))
-
-(defun bluetooth-end-of-list ()
-  "Move cursor to the last list element."
-  (interactive)
-  (let ((column (current-column)))
-	(goto-char (point-max))
-	(forward-line -1)
-	(goto-char (+ (point)
-				  (- column (current-column))))))
-
-(defun bluetooth-beginning-of-list ()
-  "Move cursor to the first list element."
-  (interactive)
-  (let ((column (current-column)))
-	(goto-char (point-min))
-	(goto-char (+ (point)
-				  (- column (current-column))))))
-
-
-;;;; keymap and menu
-
-(defvar bluetooth-mode-map
-  (let ((map (make-sparse-keymap)))
-	(set-keymap-parent map tabulated-list-mode-map)
-	(define-key map [?c] #'bluetooth-connect)
-	(define-key map [?d] #'bluetooth-disconnect)
-	(define-key map [?b] #'bluetooth-toggle-blocked)
-	(define-key map [?t] #'bluetooth-toggle-trusted)
-	(define-key map [?a] #'bluetooth-set-alias)
-	(define-key map [?r] #'bluetooth-start-discovery)
-	(define-key map [?R] #'bluetooth-stop-discovery)
-	(define-key map [?s] #'bluetooth-toggle-powered)
-	(define-key map [?P] #'bluetooth-pair)
-	(define-key map [?D] #'bluetooth-toggle-discoverable)
-	(define-key map [?x] #'bluetooth-toggle-pairable)
-	(define-key map [?i] #'bluetooth-show-device-info)
-	(define-key map [?A] #'bluetooth-show-adapter-info)
-	(define-key map [?k] #'bluetooth-remove-device)
-	(define-key map [?<] #'bluetooth-beginning-of-list)
-	(define-key map [?>] #'bluetooth-end-of-list)
-
-	(define-key map [menu-bar bluetooth]
-	  (cons "Bluetooth" (make-sparse-keymap "Bluetooth")))
-	(define-key map [menu-bar bluetooth device]
-	  (cons "Device" (make-sparse-keymap "Device")))
-
-	(define-key map [menu-bar bluetooth stop-discovery]
-	  '(menu-item "Stop discovery" bluetooth-stop-discovery
-				  :help "Stop discovery"))
-	(define-key map [menu-bar bluetooth start-discovery]
-	  '(menu-item "Start discovery" bluetooth-start-discovery
-				  :help "Start discovery"))
-	(define-key map [menu-bar bluetooth toggle-discoverable]
-	  '(menu-item "Toggle discoverable" bluetooth-toggle-discoverable
-				  :help "Toggle discoverable mode"))
-	(define-key map [menu-bar bluetooth toggle-pairable]
-	  '(menu-item "Toggle pairable" bluetooth-toggle-pairable
-				  :help "Toggle pairable mode"))
-	(define-key map [menu-bar bluetooth toggle-powered]
-	  '(menu-item "Toggle powered" bluetooth-toggle-powered
-				  :help "Toggle power supply of adapter"))
-	(define-key map [menu-bar bluetooth show-adapter-info]
-	  '(menu-item "Show adapter info" bluetooth-show-adapter-info
-				  :help "Show bluetooth adapter info"))
-
-	(define-key map [menu-bar bluetooth device show-info]
-	  '(menu-item "Show device info" bluetooth-show-device-info
-				  :help "Show bluetooth device info"))
-	(define-key map [menu-bar bluetooth device set-alias]
-	  '(menu-item "Set device alias" bluetooth-set-alias
-				  :help "Set device alias"))
-	(define-key map [menu-bar bluetooth device toggle-trusted]
-	  '(menu-item "Toggle trusted" bluetooth-toggle-trusted
-				  :help "Trust/untrust bluetooth device"))
-	(define-key map [menu-bar bluetooth device toggle-blocked]
-	  '(menu-item "Toggle blocked" bluetooth-toggle-blocked
-				  :help "Block/unblock bluetooth device"))
-	(define-key map [menu-bar bluetooth device disconnect-profile]
-	  '(menu-item "Disconnect profile" bluetooth-disconnect-profile
-				  :help "Disconnect bluetooth device profile"))
-	(define-key map [menu-bar bluetooth device disconnect]
-	  '(menu-item "Disconnect" bluetooth-disconnect
-				  :help "Disconnect bluetooth device"))
-	(define-key map [menu-bar bluetooth device connect-profile]
-	  '(menu-item "Connect profile" bluetooth-connect-profile
-				  :help "Connect bluetooth device profile"))
-	(define-key map [menu-bar bluetooth device connect]
-	  '(menu-item "Connect" bluetooth-connect
-				  :help "Connect bluetooth device"))
-	(define-key map [menu-bar bluetooth device remove]
-	  '(menu-item "Remove" bluetooth-remove-device
-				  :help "Remove bluetooth device"))
-	(define-key map [menu-bar bluetooth device pair]
-	  '(menu-item "Pair" bluetooth-pair
-				  :help "Pair bluetooth device"))
-
-	map)
-  "The Bluetooth mode keymap.")
-
-
 ;;;; internal functions
 
 (cl-defstruct bluetooth-device
@@ -499,17 +285,6 @@ as they are used to gather the information from Bluez.")
 		 (bound-and-true-p hl-line-mode)
 		 (hl-line-highlight))))
 
-(define-derived-mode bluetooth-mode tabulated-list-mode
-  bluetooth--mode-name
-  "Major mode for managing Bluetooth devices."
-  (setq tabulated-list-format bluetooth--list-format
-		tabulated-list-entries #'bluetooth--list-entries
-		tabulated-list-padding 0
-		tabulated-list-sort-key (cons "Alias" nil))
-  (tabulated-list-init-header)
-  (tabulated-list-print)
-  (hl-line-mode))
-
 ;; Build up the index for Imenu.  This function is used as
 ;; `imenu-create-index-function'.
 (defun bluetooth--create-imenu-index ()
@@ -598,18 +373,6 @@ This function only uses the first adapter reported by Bluez."
 	(kill-buffer bluetooth-buffer-name))
   nil)
 
-(defun bluetooth-remove-device ()
-  "Remove Bluetooth device at point (unpaires device and host)."
-  (interactive)
-  (when-let (dev-id (tabulated-list-get-id))
-	(bluetooth--call-method dev-id
-							:adapter
-							#'dbus-call-method-asynchronously
-							"RemoveDevice"
-							#'bluetooth--update-list
-							:timeout bluetooth--timeout
-							:object-path :path-devid)))
-
 ;; This function is called from Emacs's mode-line update code
 ;; and must not contain any calls to D-Bus functions.
 (defun bluetooth--mode-info ()
@@ -665,32 +428,6 @@ form by a call to ‘bluetooth-device-properties’."
 						(list id))))
 		  (push (list id desc) uuid-alist)))
 	  (nreverse uuid-alist))))
-
-
-;;;; mode entry command
-
-;;;###autoload
-(defun bluetooth-list-devices ()
-  "Display a list of Bluetooth devices.
-This function starts Bluetooth mode which offers an interface
-offering device management functions, e.g. pairing, connecting,
-scanning the bus, displaying device info etc."
-  (interactive)
-  ;; make sure D-Bus is (made) available
-  (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
-  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-	(unless (derived-mode-p 'bluetooth-mode)
-	  (erase-buffer)
-	  (bluetooth-mode)
-	  (setq bluetooth--device-info (make-hash-table :test #'equal))
-	  (bluetooth--initialize-device-info)
-	  (setq bluetooth--method-objects (bluetooth--register-agent))
-	  (cl-pushnew bluetooth--mode-info mode-line-process)
-	  (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
-	  (setq imenu-create-index-function #'bluetooth--create-imenu-index)
-	  (bluetooth--initialize-mode-info)
-	  (setq bluetooth--adapter-signal
-			(bluetooth--register-signal-handler)))))
 
 
 ;;;; Bluetooth pairing agent code
@@ -4169,6 +3906,246 @@ scanning the bus, displaying device info etc."
   "Bluetooth manufacturer IDs.")
 
 
+;;;; command definitions
+
+(eval-and-compile
+  (defun bluetooth--function-name (name &optional prefix)
+	"Make a function name out of NAME and PREFIX.
+The generated function name has the form ‘bluetoothPREFIX-NAME’."
+	(let ((case-fold-search nil))
+	  (concat "bluetooth"
+			  prefix
+			  (replace-regexp-in-string "[[:upper:]][[:lower:]]+"
+										(lambda (x) (concat "-" (downcase x)))
+										name t)))))
+
+(defun bluetooth--choose-uuid ()
+  "Ask for a UUID and return it in a form suitable for ‘interactive’."
+  (if current-prefix-arg
+	  (let* ((device (bluetooth--device (tabulated-list-get-id)))
+			 (uuids (bluetooth--device-uuids
+					 (bluetooth-device-properties device)))
+			 (profile (completing-read "Profile: "
+									   (mapcar (lambda (x)
+												 (let ((desc (cl-second x)))
+												   (concat (cl-first desc)
+														   ", "
+														   (cl-second desc))))
+											   uuids)
+									   nil t)))
+		(list (cl-rassoc profile uuids
+						 :key (lambda (x)
+								(let ((desc (cl-first x)))
+								  (concat (cl-first desc) ", " (cl-second desc))))
+						 :test #'string=)))
+	'(nil)))
+
+(defun bluetooth-connect (uuid)
+  "Connect to the Bluetooth device at point.
+When called with a prefix argument, ask for a profile and
+connect only this profile.  Otherwise, or when called
+non-interactively with UUID set to nil, connect to all profiles."
+  (interactive (bluetooth--choose-uuid))
+  (if uuid
+	  (bluetooth--dbus-method "ConnectProfile" :device (cl-first uuid))
+	(bluetooth--dbus-method "Connect" :device)))
+
+(defun bluetooth-disconnect (uuid)
+  "Disconnect the Bluetooth device at point.
+When called with a prefix argument, ask for a profile and
+disconnect only this profile.  Otherwise, or when called
+non-interactively with UUID set to nil, disconnect all
+profiles."
+  (interactive (bluetooth--choose-uuid))
+  (if uuid
+	  (bluetooth--dbus-method "DisconnectProfile" :device (cl-first uuid))
+	(bluetooth--dbus-method "Disconnect" :device)))
+
+(defun bluetooth-connect-profile ()
+  "Ask for a Bluetooth profile and connect the device at point to it."
+  (interactive)
+  (let ((prefix-arg (list 4)))
+	(command-execute #'bluetooth-connect)))
+
+(defun bluetooth-disconnect-profile ()
+  "Ask for a Bluetooth profile and disconnect the device at point from it."
+  (interactive)
+  (let ((prefix-arg (list 4)))
+	(command-execute #'bluetooth-disconnect)))
+
+
+(defmacro bluetooth-defun-method (method api docstring &rest body)
+  (declare (doc-string 3) (indent 2))
+  (let ((name (bluetooth--function-name method)))
+	`(defun ,(intern name) () ,docstring
+			(interactive)
+			(bluetooth--dbus-method ,method ,api)
+			,@body)))
+
+(defvar bluetooth--update-timer nil
+  "The bluetooth device table update timer.")
+
+(bluetooth-defun-method "StartDiscovery" :adapter
+  "Start discovery mode."
+  (setq bluetooth--update-timer
+		(run-at-time nil bluetooth-update-interval
+					 #'bluetooth--update-list)))
+
+(bluetooth-defun-method "StopDiscovery" :adapter
+  "Stop discovery mode."
+  (cancel-timer bluetooth--update-timer))
+
+(bluetooth-defun-method "Pair" :device
+  "Pair with device at point.")
+
+(defmacro bluetooth-defun-toggle (property api docstring)
+  (declare (doc-string 3) (indent 2))
+  (let ((name (bluetooth--function-name property "-toggle")))
+	`(defun ,(intern name) () ,docstring
+			(interactive)
+			(bluetooth--dbus-toggle ,property ,api))))
+
+(bluetooth-defun-toggle "Blocked" :device
+  "Mark Bluetooth device at point blocked.")
+(bluetooth-defun-toggle "Trusted" :device
+  "Mark Bluetooth device at point trusted.")
+(bluetooth-defun-toggle "Powered" :adapter
+  "Toggle power supply of adapter.")
+(bluetooth-defun-toggle "Discoverable" :adapter
+  "Toggle discoverable mode.")
+(bluetooth-defun-toggle "Pairable" :adapter
+  "Toggle pairable mode.")
+
+(defun bluetooth-set-alias (name)
+  "Set alias of Bluetooth device at point to NAME."
+  (interactive "MAlias (empty to reset): ")
+  (bluetooth--dbus-set "Alias" name :device))
+
+(defun bluetooth-remove-device ()
+  "Remove Bluetooth device at point (unpaires device and host)."
+  (interactive)
+  (when-let (dev-id (tabulated-list-get-id))
+	(bluetooth--call-method dev-id
+							:adapter
+							#'dbus-call-method-asynchronously
+							"RemoveDevice"
+							#'bluetooth--update-list
+							:timeout bluetooth--timeout
+							:object-path :path-devid)))
+
+(defun bluetooth-end-of-list ()
+  "Move cursor to the last list element."
+  (interactive)
+  (let ((column (current-column)))
+	(goto-char (point-max))
+	(forward-line -1)
+	(goto-char (+ (point)
+				  (- column (current-column))))))
+
+(defun bluetooth-beginning-of-list ()
+  "Move cursor to the first list element."
+  (interactive)
+  (let ((column (current-column)))
+	(goto-char (point-min))
+	(goto-char (+ (point)
+				  (- column (current-column))))))
+
+
+;;;; keymap and menu
+
+(defvar bluetooth-mode-map
+  (let ((map (make-sparse-keymap)))
+	(set-keymap-parent map tabulated-list-mode-map)
+	(define-key map [?c] #'bluetooth-connect)
+	(define-key map [?d] #'bluetooth-disconnect)
+	(define-key map [?b] #'bluetooth-toggle-blocked)
+	(define-key map [?t] #'bluetooth-toggle-trusted)
+	(define-key map [?a] #'bluetooth-set-alias)
+	(define-key map [?r] #'bluetooth-start-discovery)
+	(define-key map [?R] #'bluetooth-stop-discovery)
+	(define-key map [?s] #'bluetooth-toggle-powered)
+	(define-key map [?P] #'bluetooth-pair)
+	(define-key map [?D] #'bluetooth-toggle-discoverable)
+	(define-key map [?x] #'bluetooth-toggle-pairable)
+	(define-key map [?i] #'bluetooth-show-device-info)
+	(define-key map [?A] #'bluetooth-show-adapter-info)
+	(define-key map [?k] #'bluetooth-remove-device)
+	(define-key map [?<] #'bluetooth-beginning-of-list)
+	(define-key map [?>] #'bluetooth-end-of-list)
+
+	(define-key map [menu-bar bluetooth]
+	  (cons "Bluetooth" (make-sparse-keymap "Bluetooth")))
+	(define-key map [menu-bar bluetooth device]
+	  (cons "Device" (make-sparse-keymap "Device")))
+
+	(define-key map [menu-bar bluetooth stop-discovery]
+	  '(menu-item "Stop discovery" bluetooth-stop-discovery
+				  :help "Stop discovery"))
+	(define-key map [menu-bar bluetooth start-discovery]
+	  '(menu-item "Start discovery" bluetooth-start-discovery
+				  :help "Start discovery"))
+	(define-key map [menu-bar bluetooth toggle-discoverable]
+	  '(menu-item "Toggle discoverable" bluetooth-toggle-discoverable
+				  :help "Toggle discoverable mode"))
+	(define-key map [menu-bar bluetooth toggle-pairable]
+	  '(menu-item "Toggle pairable" bluetooth-toggle-pairable
+				  :help "Toggle pairable mode"))
+	(define-key map [menu-bar bluetooth toggle-powered]
+	  '(menu-item "Toggle powered" bluetooth-toggle-powered
+				  :help "Toggle power supply of adapter"))
+	(define-key map [menu-bar bluetooth show-adapter-info]
+	  '(menu-item "Show adapter info" bluetooth-show-adapter-info
+				  :help "Show bluetooth adapter info"))
+
+	(define-key map [menu-bar bluetooth device show-info]
+	  '(menu-item "Show device info" bluetooth-show-device-info
+				  :help "Show bluetooth device info"))
+	(define-key map [menu-bar bluetooth device set-alias]
+	  '(menu-item "Set device alias" bluetooth-set-alias
+				  :help "Set device alias"))
+	(define-key map [menu-bar bluetooth device toggle-trusted]
+	  '(menu-item "Toggle trusted" bluetooth-toggle-trusted
+				  :help "Trust/untrust bluetooth device"))
+	(define-key map [menu-bar bluetooth device toggle-blocked]
+	  '(menu-item "Toggle blocked" bluetooth-toggle-blocked
+				  :help "Block/unblock bluetooth device"))
+	(define-key map [menu-bar bluetooth device disconnect-profile]
+	  '(menu-item "Disconnect profile" bluetooth-disconnect-profile
+				  :help "Disconnect bluetooth device profile"))
+	(define-key map [menu-bar bluetooth device disconnect]
+	  '(menu-item "Disconnect" bluetooth-disconnect
+				  :help "Disconnect bluetooth device"))
+	(define-key map [menu-bar bluetooth device connect-profile]
+	  '(menu-item "Connect profile" bluetooth-connect-profile
+				  :help "Connect bluetooth device profile"))
+	(define-key map [menu-bar bluetooth device connect]
+	  '(menu-item "Connect" bluetooth-connect
+				  :help "Connect bluetooth device"))
+	(define-key map [menu-bar bluetooth device remove]
+	  '(menu-item "Remove" bluetooth-remove-device
+				  :help "Remove bluetooth device"))
+	(define-key map [menu-bar bluetooth device pair]
+	  '(menu-item "Pair" bluetooth-pair
+				  :help "Pair bluetooth device"))
+
+	map)
+  "The Bluetooth mode keymap.")
+
+
+;;;; mode definition
+
+(define-derived-mode bluetooth-mode tabulated-list-mode
+  bluetooth--mode-name
+  "Major mode for managing Bluetooth devices."
+  (setq tabulated-list-format bluetooth--list-format
+		tabulated-list-entries #'bluetooth--list-entries
+		tabulated-list-padding 0
+		tabulated-list-sort-key (cons "Alias" nil))
+  (tabulated-list-init-header)
+  (tabulated-list-print)
+  (hl-line-mode))
+
+
 ;;;; device and adapter info display
 
 (defun bluetooth--ins-heading (heading)
@@ -4276,6 +4253,32 @@ scanning the bus, displaying device info etc."
 					  #'bluetooth--ins-services)
 			   props)
 	  (special-mode))))
+
+
+;;;; mode entry command
+
+;;;###autoload
+(defun bluetooth-list-devices ()
+  "Display a list of Bluetooth devices.
+This function starts Bluetooth mode which offers an interface
+offering device management functions, e.g. pairing, connecting,
+scanning the bus, displaying device info etc."
+  (interactive)
+  ;; make sure D-Bus is (made) available
+  (dbus-ping bluetooth-bluez-bus bluetooth--service bluetooth--timeout)
+  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
+	(unless (derived-mode-p 'bluetooth-mode)
+	  (erase-buffer)
+	  (setq bluetooth--device-info (make-hash-table :test #'equal))
+	  (bluetooth--initialize-device-info)
+	  (bluetooth-mode)
+	  (setq bluetooth--method-objects (bluetooth--register-agent))
+	  (cl-pushnew bluetooth--mode-info mode-line-process)
+	  (add-hook 'kill-buffer-hook #'bluetooth--cleanup nil t)
+	  (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+	  (bluetooth--initialize-mode-info)
+	  (setq bluetooth--adapter-signal
+			(bluetooth--register-signal-handler)))))
 
 (provide 'bluetooth)
 
