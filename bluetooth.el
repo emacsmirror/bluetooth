@@ -156,6 +156,9 @@ property and state.")
 
 (defvar bluetooth--device-info nil "Device info obtained from Bluez.")
 
+(defvar bluetooth--update-timer nil
+  "The bluetooth device table update timer.")
+
 
 ;;;; internal functions
 
@@ -303,13 +306,15 @@ as they are used to gather the information from Bluez.")
 																 dev-id))))
 			queried-devices))))
 
+(defun bluetooth--update-all ()
+  "Update the device info for all adapters."
+  (mapc #'bluetooth--update-device-info
+		(bluetooth--query-adapters)))
+
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
-  (mapc #'bluetooth--update-device-info
-		(bluetooth--query-adapters))		; TODO this can later be removed when
-										; update is by dbus change notifications
   (let (dev-list)
 	(maphash (lambda (dev dev-info)
 			   (push (list dev
@@ -320,13 +325,19 @@ as they are used to gather the information from Bluez.")
 			 bluetooth--device-info)
 	dev-list))
 
-(defun bluetooth--update-list ()
-  "Update the list view."
+(defun bluetooth--print-list ()
+  "Print the device list."
   (with-current-buffer bluetooth-buffer-name
 	(tabulated-list-print t)
 	(and (fboundp 'hl-line-highlight)
 		 (bound-and-true-p hl-line-mode)
 		 (hl-line-highlight))))
+
+(defun bluetooth--update-print ()
+  "Update device info and print device list view."
+  (ignore-errors
+	(bluetooth--update-all)
+	(bluetooth--print-list)))
 
 ;; Build up the index for Imenu.  This function is used as
 ;; `imenu-create-index-function'.
@@ -366,7 +377,7 @@ as they are used to gather the information from Bluez.")
   (let ((dev-id (tabulated-list-get-id)))
 	(apply #'bluetooth--call-method dev-id api
 		   #'dbus-call-method-asynchronously method
-		   #'bluetooth--update-list :timeout bluetooth--timeout args)))
+		   nil :timeout bluetooth--timeout args)))
 
 (defun bluetooth--dbus-toggle (property api)
   "Toggle boolean PROPERTY on D-Bus API."
@@ -374,14 +385,12 @@ as they are used to gather the information from Bluez.")
 		 (value (bluetooth--call-method dev-id api
 										#'dbus-get-property property)))
 	(bluetooth--call-method dev-id api #'dbus-set-property property
-							(not value))
-	(bluetooth--update-list)))
+							(not value))))
 
 (defun bluetooth--dbus-set (property arg api)
   "Set PROPERTY to ARG on D-Bus API."
   (let ((dev-id (tabulated-list-get-id)))
-	(bluetooth--call-method dev-id api #'dbus-set-property property arg)
-	(bluetooth--update-list)))
+	(bluetooth--call-method dev-id api #'dbus-set-property property arg)))
 
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
@@ -438,7 +447,8 @@ update the status display accordingly."
 			(cl-destructuring-bind (prop (value)) elt
 			  (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
 				(setf (bluetooth-property-active-p property) value))))
-		  data)))
+		  data)
+	(force-mode-line-update)))
 
 (defun bluetooth--register-signal-handler ()
   "Register a signal handler for adapter property changes.
@@ -4027,14 +4037,11 @@ profiles."
 			(bluetooth--dbus-method ,method ,api)
 			,@body)))
 
-(defvar bluetooth--update-timer nil
-  "The bluetooth device table update timer.")
-
 (bluetooth-defun-method "StartDiscovery" :adapter
   "Start discovery mode."
   (setq bluetooth--update-timer
 		(run-at-time nil bluetooth-update-interval
-					 #'bluetooth--update-list)))
+					 #'bluetooth--update-print)))
 
 (bluetooth-defun-method "StopDiscovery" :adapter
   "Stop discovery mode."
@@ -4074,7 +4081,7 @@ profiles."
 							:adapter
 							#'dbus-call-method-asynchronously
 							"RemoveDevice"
-							#'bluetooth--update-list
+							nil
 							:timeout bluetooth--timeout
 							:object-path :path-devid)))
 
@@ -4186,6 +4193,7 @@ profiles."
 		tabulated-list-entries #'bluetooth--list-entries
 		tabulated-list-padding 0
 		tabulated-list-sort-key (cons "Alias" nil))
+  (add-hook 'tabulated-list-revert-hook #'bluetooth--update-all)
   (tabulated-list-init-header)
   (tabulated-list-print)
   (hl-line-mode))
