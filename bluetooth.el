@@ -495,9 +495,11 @@ form by a call to ‘bluetooth-device-properties’."
 (defmacro bluetooth--with-alias (device &rest body)
   "Evaluate BODY with DEVICE alias bound to ALIAS."
   (declare (indent defun))
-  `(let* ((dev (bluetooth--device (cl-first (last (split-string ,device "/")))))
-		  (alias (or (bluetooth-device-property dev "Alias")
-					 (replace-regexp-in-string "_" ":" dev nil nil nil 4))))
+  `(let* ((dev-id (cl-first (last (split-string ,device "/")))) 
+		  (dev (bluetooth--device dev-id))
+		  (alias (if dev
+					 (bluetooth-device-property dev "Alias")
+				   (replace-regexp-in-string "_" ":" dev-id nil nil nil 4))))
 	 ,@body))
 
 (defmacro bluetooth--maybe-cancel-reject (&rest body)
