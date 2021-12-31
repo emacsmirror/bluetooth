@@ -58,6 +58,10 @@ This is usually `:system' if bluetoothd runs as a system service, or
 `:session' if it runs as a user service."
   :type '(symbol))
 
+(defcustom bluetooth-update-interval 2
+  "Update interval of the device list view."
+  :type '(natnum))
+
 (defgroup bluetooth-faces nil
   "Faces used by Bluetooth mode."
   :group 'faces)
@@ -221,17 +225,27 @@ profiles."
 	(command-execute #'bluetooth-disconnect)))
 
 
-(defmacro bluetooth-defun-method (method api docstring)
+(defmacro bluetooth-defun-method (method api docstring &rest body)
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth--function-name method)))
 	`(defun ,(intern name) () ,docstring
 			(interactive)
-			(bluetooth--dbus-method ,method ,api))))
+			(bluetooth--dbus-method ,method ,api)
+			,@body)))
+
+(defvar bluetooth--update-timer nil
+  "The bluetooth device table update timer.")
 
 (bluetooth-defun-method "StartDiscovery" :adapter
-  "Start discovery mode.")
+  "Start discovery mode."
+  (setq bluetooth--update-timer
+		(run-at-time nil bluetooth-update-interval
+					 #'bluetooth--update-list)))
+
 (bluetooth-defun-method "StopDiscovery" :adapter
-  "Stop discovery mode.")
+  "Stop discovery mode."
+  (cancel-timer bluetooth--update-timer))
+
 (bluetooth-defun-method "Pair" :device
   "Pair with device at point.")
 
@@ -539,11 +553,13 @@ This function only uses the first adapter reported by Bluez."
 					  "UnregisterAgent"
 					  :object-path bluetooth--own-path)
 	(mapc #'dbus-unregister-object bluetooth--method-objects)
-	(dbus-unregister-object bluetooth--adapter-signal)))
+	(dbus-unregister-object bluetooth--adapter-signal)
+	(cancel-timer bluetooth--update-timer)))
 
 (defun bluetooth-unload-function ()
   "Clean up when the bluetooth feature is unloaded."
   (when (buffer-live-p (get-buffer bluetooth-buffer-name))
+	(cancel-timer bluetooth--update-timer)
 	(kill-buffer bluetooth-buffer-name))
   nil)
 
