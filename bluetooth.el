@@ -163,11 +163,23 @@ property and state.")
   "A bluetooth device.  This structure holds all the device
 properties."
   (id nil :read-only t)
+  signal-handler
   properties)
 
-(defun bluetooth-device-property (device prop-name)
-  "Return DEVICE's property PROP-NAME."
-  (cl-rest (assoc prop-name (bluetooth-device-properties device))))
+(defun bluetooth-device-property (device property)
+  "Return DEVICE's property PROPERTY."
+  (alist-get property
+			 (bluetooth-device-properties device)
+			 nil nil #'equal))
+
+(defun bluetooth-device-property-set (device property value)
+  "Set DEVICE's PROPERTY to VALUE."
+  (setf (alist-get property (bluetooth-device-properties device)
+				   nil nil #'equal)
+		value))
+
+(gv-define-simple-setter bluetooth-device-property
+						 bluetooth-device-property-set)
 
 (defun bluetooth--query-adapters ()
   "Return a list of bluetooth adapters."
@@ -190,7 +202,26 @@ properties."
 		  ((null value) "no")
 		  (t "yes"))))
 
-;; TODO install signal handler if the device is paired
+(defun bluetooth--make-signal-handler (device)
+  (let ((adapter (bluetooth-device-property device "Adapter"))
+		(dev-id (bluetooth-device-id device)))
+	(cl-flet ((handler
+			   (_interface changed-props invalidated-props)
+			   (let ((device (bluetooth--device dev-id)))
+				 (mapc (lambda (prop)
+						 (cl-destructuring-bind (key (value)) prop
+							 (setf (bluetooth-device-property device key)
+								   value)))
+					   (append changed-props invalidated-props))
+				 (bluetooth--print-list))))
+	  (dbus-register-signal bluetooth-bluez-bus bluetooth--service
+							(concat adapter "/" dev-id)
+							(alist-get :properties bluetooth--interfaces)
+							"PropertiesChanged"
+							#'handler
+							:arg-namespace
+							(alist-get :device bluetooth--interfaces)))))
+
 (defun bluetooth--device-create (adapter dev-id)
   "Create a bluetooth device struct for DEV-ID on ADAPTER."
   (let* ((path (mapconcat #'identity
@@ -201,21 +232,33 @@ properties."
 										 path
 										 (alist-get
 										  :device bluetooth--interfaces))))
-	(make-bluetooth-device :id dev-id :properties props)))
+	(make-bluetooth-device :id dev-id
+						   :signal-handler nil
+						   :properties props)))
 
-;; TODO remove signal handler
 (defun bluetooth--device-remove (dev-id)
   "Remove the device with id DEV-ID from the device info."
+  (let ((device (bluetooth--device dev-id)))
+	(when (bluetooth-device-signal-handler device)
+	  (dbus-unregister-object (bluetooth-device-signal-handler device))
+	  (setf (bluetooth-device-signal-handler device) nil)))
   (remhash dev-id bluetooth--device-info))
 
 (defun bluetooth--device-add (dev-id device)
   "Add bluetooth DEVICE with id DEV-ID to device info."
+  (when (bluetooth-device-property device "Paired")
+		(setf (bluetooth-device-signal-handler device)
+			  (bluetooth--make-signal-handler device)))
   (puthash dev-id device bluetooth--device-info))
 
 (defun bluetooth--device-update (dev-id device)
   "Update device info for id DEV-ID with data in DEVICE."
   (setf (bluetooth-device-properties (bluetooth--device dev-id))
-		(bluetooth-device-properties device)))
+		(bluetooth-device-properties device))
+  (when (and (bluetooth-device-property device "Paired")
+			 (null (bluetooth-device-signal-handler device)))
+		(setf (bluetooth-device-signal-handler device)
+			  (bluetooth--make-signal-handler device))))
 
 (defun bluetooth--adapter-properties (adapter)
   "Return the properties of bluetooth ADAPTER.
@@ -351,7 +394,6 @@ This function only uses the first adapter reported by Bluez."
 	(bluetooth--handle-prop-change (alist-get :adapter bluetooth--interfaces)
 								   info)))
 
-;; TODO de-register all the signal handlers
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
   ;; This function is registered as a kill-buffer-hook, so we don't
@@ -363,13 +405,16 @@ This function only uses the first adapter reported by Bluez."
 					  :object-path bluetooth--own-path)
 	(mapc #'dbus-unregister-object bluetooth--method-objects)
 	(dbus-unregister-object bluetooth--adapter-signal)
+	(mapc #'bluetooth--device-remove
+		  (hash-table-keys bluetooth--device-info))
+	(setq bluetooth--device-info nil)
+	(remove-hook tabulated-list-revert-hook #'bluetooth--update-all)
 	(cancel-timer bluetooth--update-timer)))
 
-;; TODO de-register all the signal handlers
 (defun bluetooth-unload-function ()
   "Clean up when the bluetooth feature is unloaded."
   (when (buffer-live-p (get-buffer bluetooth-buffer-name))
-	(cancel-timer bluetooth--update-timer)
+	(bluetooth--cleanup)
 	(kill-buffer bluetooth-buffer-name))
   nil)
 
