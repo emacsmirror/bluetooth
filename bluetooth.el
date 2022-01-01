@@ -350,7 +350,6 @@ as they are used to gather the information from Bluez.")
 		   do (forward-line 1)
 		   collect (cons (elt entry 0) pos)))
 
-;; TODO operate on device structs, not ids
 (defun bluetooth--call-method (dev-id api function &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((path (cond ((and (eq :device api)
