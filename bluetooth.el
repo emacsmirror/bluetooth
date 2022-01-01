@@ -926,80 +926,71 @@ form by a call to ‘bluetooth-device-properties’."
 (define-obsolete-variable-alias 'bluetooth--gatt-service-uuid-alist
   'bluetooth--gatt-service-uuids "0.2")
 
+;; Last updated: 01. Jan 2022
 (defconst bluetooth--gatt-service-uuids
   #s(hash-table
-	 size 45 data
+	 size 70 data
 	 (#x1800
 	  ("Generic Access" "org.bluetooth.service.generic_access" "GSS")
-	  #x1811 ("Alert Notification Service"
-			  "org.bluetooth.service.alert_notification" "GSS")
-	  #x1815 ("Automation IO" "org.bluetooth.service.automation_io" "GSS")
-	  #x180F ("Battery Service" "org.bluetooth.service.battery_service"
-			  "GSS")
-	  #x183B ("Binary Sensor" "GATT Service UUID" "BSS")
-	  #x1810 ("Blood Pressure" "org.bluetooth.service.blood_pressure" "GSS")
-	  #x181B ("Body Composition" "org.bluetooth.service.body_composition"
-			  "GSS")
-	  #x181E ("Bond Management Service"
-			  "org.bluetooth.service.bond_management" "GSS")
-	  #x181F ("Continuous Glucose Monitoring"
-			  "org.bluetooth.service.continuous_glucose_monitoring" "GSS")
-	  #x1805 ("Current Time Service" "org.bluetooth.service.current_time"
-			  "GSS")
-	  #x1818 ("Cycling Power" "org.bluetooth.service.cycling_power" "GSS")
-	  #x1816 ("Cycling Speed and Cadence"
-			  "org.bluetooth.service.cycling_speed_and_cadence" "GSS")
-	  #x180A ("Device Information" "org.bluetooth.service.device_information"
-			  "GSS")
-	  #x183C ("Emergency Configuration" "GATT Service UUID" "EMCS")
-	  #x181A ("Environmental Sensing"
-			  "org.bluetooth.service.environmental_sensing" "GSS")
-	  #x1826 ("Fitness Machine" "org.bluetooth.service.fitness_machine"
-			  "GSS")
-	  #x1801 ("Generic Attribute" "org.bluetooth.service.generic_attribute"
-			  "GSS")
-	  #x1808 ("Glucose" "org.bluetooth.service.glucose" "GSS")
-	  #x1809 ("Health Thermometer" "org.bluetooth.service.health_thermometer"
-			  "GSS")
-	  #x180D ("Heart Rate" "org.bluetooth.service.heart_rate" "GSS")
-	  #x1823 ("HTTP Proxy" "org.bluetooth.service.http_proxy" "GSS")
-	  #x1812 ("Human Interface Device"
-			  "org.bluetooth.service.human_interface_device" "GSS")
-	  #x1802 ("Immediate Alert" "org.bluetooth.service.immediate_alert"
-			  "GSS")
-	  #x1821 ("Indoor Positioning" "org.bluetooth.service.indoor_positioning"
-			  "GSS")
-	  #x183A ("Insulin Delivery" "org.bluetooth.service.insulin_delivery"
-			  "GSS")
-	  #x1820 ("Internet Protocol Support Service"
-			  "org.bluetooth.service.internet_protocol_support" "GSS")
+	  #x1801 ("Generic Attribute" "org.bluetooth.service.generic_attribute" "GSS")
+	  #x1802 ("Immediate Alert" "org.bluetooth.service.immediate_alert" "GSS")
 	  #x1803 ("Link Loss" "org.bluetooth.service.link_loss" "GSS")
-	  #x1819 ("Location and Navigation"
-			  "org.bluetooth.service.location_and_navigation" "GSS")
-	  #x1827 ("Mesh Provisioning Service"
-			  "org.bluetooth.service.mesh_provisioning" "GSS")
-	  #x1828 ("Mesh Proxy Service" "org.bluetooth.service.mesh_proxy" "GSS")
-	  #x1807 ("Next DST Change Service"
-			  "org.bluetooth.service.next_dst_change" "GSS")
-	  #x1825 ("Object Transfer Service"
-			  "org.bluetooth.service.object_transfer" "GSS")
-	  #x180E ("Phone Alert Status Service"
-			  "org.bluetooth.service.phone_alert_status" "GSS")
-	  #x1822 ("Pulse Oximeter Service" "org.bluetooth.service.pulse_oximeter"
-			  "GSS")
-	  #x1829 ("Reconnection Configuration"
-			  "org.bluetooth.service.reconnection_configuration" "GSS")
-	  #x1806 ("Reference Time Update Service"
-			  "org.bluetooth.service.reference_time_update" "GSS")
-	  #x1814 ("Running Speed and Cadence"
-			  "org.bluetooth.service.running_speed_and_cadence" "GSS")
-	  #x1813 ("Scan Parameters" "org.bluetooth.service.scan_parameters"
-			  "GSS")
-	  #x1824 ("Transport Discovery"
-			  "org.bluetooth.service.transport_discovery" "GSS")
 	  #x1804 ("Tx Power" "org.bluetooth.service.tx_power" "GSS")
+	  #x1805 ("Current Time Service" "org.bluetooth.service.current_time" "GSS")
+	  #x1806 ("Reference Time Update Service" "org.bluetooth.service.reference_time_update" "GSS")
+	  #x1807 ("Next DST Change Service" "org.bluetooth.service.next_dst_change" "GSS")
+	  #x1808 ("Glucose" "org.bluetooth.service.glucose" "GSS")
+	  #x1809 ("Health Thermometer" "org.bluetooth.service.health_thermometer" "GSS")
+	  #x180A ("Device Information" "org.bluetooth.service.device_information" "GSS")
+	  #x180D ("Heart Rate" "org.bluetooth.service.heart_rate" "GSS")
+	  #x180E ("Phone Alert Status Service" "org.bluetooth.service.phone_alert_status" "GSS")
+	  #x180F ("Battery Service" "org.bluetooth.service.battery_service" "GSS")
+	  #x1810 ("Blood Pressure" "org.bluetooth.service.blood_pressure" "GSS")
+	  #x1811 ("Alert Notification Service" "org.bluetooth.service.alert_notification" "GSS")
+	  #x1812 ("Human Interface Device" "org.bluetooth.service.human_interface_device" "GSS")
+	  #x1813 ("Scan Parameters" "org.bluetooth.service.scan_parameters" "GSS")
+	  #x1814 ("Running Speed and Cadence" "org.bluetooth.service.running_speed_and_cadence" "GSS")
+	  #x1815 ("Automation IO" "org.bluetooth.service.automation_io" "GSS")
+	  #x1816 ("Cycling Speed and Cadence" "org.bluetooth.service.cycling_speed_and_cadence" "GSS")
+	  #x1818 ("Cycling Power" "org.bluetooth.service.cycling_power" "GSS")
+	  #x1819 ("Location and Navigation" "org.bluetooth.service.location_and_navigation" "GSS")
+	  #x181A ("Environmental Sensing" "org.bluetooth.service.environmental_sensing" "GSS")
+	  #x181B ("Body Composition" "org.bluetooth.service.body_composition" "GSS")
 	  #x181C ("User Data" "org.bluetooth.service.user_data" "GSS")
-	  #x181D ("Weight Scale" "org.bluetooth.service.weight_scale" "GSS")))
+	  #x181D ("Weight Scale" "org.bluetooth.service.weight_scale" "GSS")
+	  #x181E ("Bond Management Service" "org.bluetooth.service.bond_management" "GSS")
+	  #x181F ("Continuous Glucose Monitoring" "org.bluetooth.service.continuous_glucose_monitoring" "GSS")
+	  #x1820 ("Internet Protocol Support Service" "org.bluetooth.service.internet_protocol_support" "GSS")
+	  #x1821 ("Indoor Positioning" "org.bluetooth.service.indoor_positioning" "GSS")
+	  #x1822 ("Pulse Oximeter Service" "org.bluetooth.service.pulse_oximeter" "GSS")
+	  #x1823 ("HTTP Proxy" "org.bluetooth.service.http_proxy" "GSS")
+	  #x1824 ("Transport Discovery" "org.bluetooth.service.transport_discovery" "GSS")
+	  #x1825 ("Object Transfer Service" "org.bluetooth.service.object_transfer" "GSS")
+	  #x1826 ("Fitness Machine" "org.bluetooth.service.fitness_machine" "GSS")
+	  #x1827 ("Mesh Provisioning Service" "org.bluetooth.service.mesh_provisioning" "GSS")
+	  #x1828 ("Mesh Proxy Service" "org.bluetooth.service.mesh_proxy" "GSS")
+	  #x1829 ("Reconnection Configuration" "org.bluetooth.service.reconnection_configuration" "GSS")
+	  #x183A ("Insulin Delivery" "org.bluetooth.service.insulin_delivery" "GSS")
+	  #x183B ("Binary Sensor" "GATT Service UUID" "BSS")
+	  #x183C ("Emergency Configuration" "GATT Service UUID" "EMCS")
+	  #x183E ("Physical Activity Monitor")
+	  #x1843 ("Audio Input Control")
+	  #x1844 ("Volume Control")
+	  #x1845 ("Volume Offset Control")
+	  #x1846 ("Coordinated Set Identification Service")
+	  #x1847 ("Device Time")
+	  #x1848 ("Media Control Service")
+	  #x1849 ("Generic Media Control Service")
+	  #x184A ("Constant Tone Extension")
+	  #x184B ("Telephone Bearer Service")
+	  #x184C ("Generic Telephone Bearer Service")
+	  #x184D ("Microphone Control")
+	  #x184E ("Audio Stream Control Service")
+	  #x184F ("Broadcast Audio Scan Service")
+	  #x1850 ("Published Audio Capabilities Service")
+	  #x1851 ("Basic Audio Announcement Service")
+	  #x1852 ("Broadcast Audio Announcement Service")
+	  #x1853 ("Common Audio Service*")))
   "Bluetooth GATT service UUIDs.")
 
 (define-obsolete-variable-alias 'bluetooth--sdo-uuid-alist
@@ -1022,7 +1013,7 @@ form by a call to ‘bluetooth-device-properties’."
 
 
 ;;;; Bluetooth member UUIDs
-;; Last updated: 19. Sep 2020
+;; Last updated: 01. Jan 2022
 
 (define-obsolete-variable-alias 'bluetooth--member-uuid-alist
   'bluetooth--member-uuids "0.2")
@@ -1476,7 +1467,74 @@ form by a call to ‘bluetooth-device-properties’."
 	  #xFD45 ("GB Solution co., Ltd")
 	  #xFD44 ("Apple Inc.")
 	  #xFD43 ("Apple Inc.")
-	  #xFD42 ("Globe (Jiangsu) Co., Ltd")))
+	  #xFD42 ("Globe (Jiangsu) Co., Ltd")
+	  #xFD41 ("Amazon Lab126")
+	  #xFD40 ("Beflex Inc.")
+	  #xFD3F ("Cognosos, Inc")
+	  #xFD3E ("Pure Watercraft, inc.")
+	  #xFD3D ("Woan Technology (Shenzhen) Co., Ltd.")
+	  #xFD3C ("Redline Communications Inc.")
+	  #xFD3B ("Verkada Inc.")
+	  #xFD3A ("Verkada Inc.")
+	  #xFD39 ("PREDIKTAS")
+	  #xFD38 ("Danfoss A/S")
+	  #xFD37 ("TireCheck GmbH")
+	  #xFD36 ("Google LLC")
+	  #xFD35 ("Transsion Holdings Limited")
+	  #xFD34 ("Aerosens LLC.")
+	  #xFD33 ("DashLogic, Inc.")
+	  #xFD32 ("Gemalto Holding BV")
+	  #xFD31 ("LG Electronics Inc.")
+	  #xFD30 ("Sesam Solutions BV")
+	  #xFD2F ("Bitstrata Systems Inc.")
+	  #xFD2E ("Bitstrata Systems Inc.")
+	  #xFD2D ("Xiaomi Inc.")
+	  #xFD2C ("The Access Technologies")
+	  #xFD2B ("The Access Technologies")
+	  #xFD2A ("Sony Corporation")
+	  #xFD29 ("Asahi Kasei Corporation")
+	  #xFD28 ("Julius Blum GmbH")
+	  #xFD27 ("i2Systems")
+	  #xFD26 ("Novo Nordisk A/S")
+	  #xFD25 ("GD Midea Air-Conditioning Equipment Co., Ltd.")
+	  #xFD24 ("GD Midea Air-Conditioning Equipment Co., Ltd.")
+	  #xFD23 ("DOM Sicherheitstechnik GmbH & Co. KG")
+	  #xFD22 ("Huawei Technologies Co., Ltd.")
+	  #xFD21 ("Huawei Technologies Co., Ltd.")
+	  #xFD20 ("GN Hearing A/S")
+	  #xFD1F ("3M")
+	  #xFD1E ("Plume Design Inc.")
+	  #xFD1D ("Samsung Electronics Co., Ltd")
+	  #xFD1C ("Brady Worldwide Inc.")
+	  #xFD1B ("Helios Sports, Inc.")
+	  #xFD1A ("CSIRO")
+	  #xFD19 ("Smith & Nephew Medical Limited")
+	  #xFD18 ("LEGIC Identsystems AG")
+	  #xFD17 ("LEGIC Identsystems AG")
+	  #xFD16 ("Sensitech, Inc.")
+	  #xFD15 ("Panasonic Corporation")
+	  #xFD14 ("BRG Sports, Inc.")
+	  #xFD13 ("BRG Sports, Inc.")
+	  #xFD12 ("AEON MOTOR CO.,LTD.")
+	  #xFD11 ("AEON MOTOR CO.,LTD.")
+	  #xFD10 ("AEON MOTOR CO.,LTD.")
+	  #xFD0F ("AEON MOTOR CO.,LTD.")
+	  #xFD0E ("HerdDogg, Inc")
+	  #xFD0D ("Blecon Ltd")
+	  #xFD0C ("OSM HK Limited")
+	  #xFD0B ("Luminostics, Inc.")
+	  #xFD0A ("Luminostics, Inc.")
+	  #xFD09 ("Cousins and Sears LLC")
+	  #xFD08 ("Bull Group Incorporated Company")
+	  #xFD07 ("Swedlock AB")
+	  #xFD06 ("RACE-AI LLC")
+	  #xFD05 ("Qualcomm Technologies, Inc.")
+	  #xFD04 ("Shure Inc.​")
+	  #xFD03 ("Quuppa Oy")
+	  #xFD02 ("LEGO System A/S")
+	  #xFD01 ("Sanvita Medical Corporation")
+	  #xFD00 ("FUTEK Advanced Sensor Technology, Inc.")
+	  #xFCFF ("701x")))
   "Bluetooth member UUIDs.")
 
 
@@ -1486,7 +1544,7 @@ form by a call to ‘bluetooth-device-properties’."
 
 (defconst bluetooth--uuids
   `((#xfff0 . ,bluetooth--sdo-uuids)
-	(#xfd00 . ,bluetooth--member-uuids)
+	(#xfc00 . ,bluetooth--member-uuids)
 	(#x1800 . ,bluetooth--gatt-service-uuids)
 	(#x0 . ,bluetooth--service-class-uuids))
   "Bluetooth UUID tables sorted by beginning of range.")
@@ -1557,7 +1615,7 @@ form by a call to ‘bluetooth-device-properties’."
 ;;;; Bluetooth company IDs
 
 ;; Very long list of manufacturer IDs.
-;; Last updated: 19. Sep 2020
+;; Last updated: 01. Jan 2022
 (defconst bluetooth--manufacturer-ids
   #s(hash-table
 	 size 3000 data
@@ -3959,9 +4017,419 @@ form by a call to ‘bluetooth-device-properties’."
 	  #x0960 "Sena Technologies Inc."
 	  #x0961 "Linkura AB"
 	  #x0962 "GL Solutions K.K."
-	  #x0963 "Moonbird BV"))
+	  #x0963 "Moonbird BV"
+	  #x0964 "Countrymate Technology Limited"
+	  #x0965 "Asahi Kasei Corporation"
+	  #x0966 "PointGuard, LLC"
+	  #x0967 "Neo Materials and Consulting Inc."
+	  #x0968 "Actev Motors, Inc."
+	  #x0969 "Woan Technology (Shenzhen) Co., Ltd."
+	  #x096A "dricos, Inc."
+	  #x096B "Guide ID B.V."
+	  #x096C "9374-7319 Quebec inc"
+	  #x096D "Gunwerks, LLC"
+	  #x096E "Band Industries, inc."
+	  #x096F "Lund Motion Products, Inc."
+	  #x0970 "IBA Dosimetry GmbH"
+	  #x0971 "GA"
+	  #x0972 "Closed Joint Stock Company \"Zavod Flometr\" (\"Zavod Flometr\" CJSC)"
+	  #x0973 "Popit Oy"
+	  #x0974 "ABEYE"
+	  #x0975 "BlueIOT(Beijing) Technology Co.,Ltd"
+	  #x0976 "Fauna Audio GmbH"
+	  #x0977 "TOYOTA motor corporation"
+	  #x0978 "ZifferEins GmbH & Co. KG"
+	  #x0979 "BIOTRONIK SE & Co. KG"
+	  #x097A "CORE CORPORATION"
+	  #x097B "CTEK Sweden AB"
+	  #x097C "Thorley Industries, LLC"
+	  #x097D "CLB B.V."
+	  #x097E "SonicSensory Inc"
+	  #x097F "ISEMAR S.R.L."
+	  #x0980 "DEKRA TESTING AND CERTIFICATION, S.A.U."
+	  #x0981 "Bernard Krone Holding SE & Co.KG"
+	  #x0982 "ELPRO-BUCHS AG"
+	  #x0983 "Feedback Sports LLC"
+	  #x0984 "TeraTron GmbH"
+	  #x0985 "Lumos Health Inc."
+	  #x0986 "Cello Hill, LLC"
+	  #x0987 "TSE BRAKES, INC."
+	  #x0988 "BHM-Tech Produktionsgesellschaft m.b.H"
+	  #x0989 "WIKA Alexander Wiegand SE & Co.KG"
+	  #x098A "Biovigil"
+	  #x098B "Mequonic Engineering, S.L."
+	  #x098C "bGrid B.V."
+	  #x098D "C3-WIRELESS, LLC"
+	  #x098E "ADVEEZ"
+	  #x098F "Aktiebolaget Regin"
+	  #x0990 "Anton Paar GmbH"
+	  #x0991 "Telenor ASA"
+	  #x0992 "Big Kaiser Precision Tooling Ltd"
+	  #x0993 "Absolute Audio Labs B.V."
+	  #x0994 "VT42 Pty Ltd"
+	  #x0995 "Bronkhorst High-Tech B.V."
+	  #x0996 "C. & E. Fein GmbH"
+	  #x0997 "NextMind"
+	  #x0998 "Pixie Dust Technologies, Inc."
+	  #x0999 "eTactica ehf"
+	  #x099A "New Audio LLC"
+	  #x099B "Sendum Wireless Corporation"
+	  #x099C "deister electronic GmbH"
+	  #x099D "YKK AP Inc."
+	  #x099E "Step One Limited"
+	  #x099F "Koya Medical, Inc."
+	  #x09A0 "Proof Diagnostics, Inc."
+	  #x09A1 "VOS Systems, LLC"
+	  #x09A2 "ENGAGENOW DATA SCIENCES PRIVATE LIMITED"
+	  #x09A3 "ARDUINO SA"
+	  #x09A4 "KUMHO ELECTRICS, INC"
+	  #x09A5 "Security Enhancement Systems, LLC"
+	  #x09A6 "BEIJING ELECTRIC VEHICLE CO.,LTD"
+	  #x09A7 "Paybuddy ApS"
+	  #x09A8 "KHN Solutions Inc"
+	  #x09A9 "Nippon Ceramic Co.,Ltd."
+	  #x09AA "PHOTODYNAMIC INCORPORATED"
+	  #x09AB "DashLogic, Inc."
+	  #x09AC "Ambiq"
+	  #x09AD "Narhwall Inc."
+	  #x09AE "Pozyx NV"
+	  #x09AF "ifLink Open Community"
+	  #x09B0 "Deublin Company, LLC"
+	  #x09B1 "BLINQY"
+	  #x09B2 "DYPHI"
+	  #x09B3 "BlueX Microelectronics Corp Ltd."
+	  #x09B4 "PentaLock Aps."
+	  #x09B5 "AUTEC Gesellschaft fuer Automationstechnik mbH"
+	  #x09B6 "Pegasus Technologies, Inc."
+	  #x09B7 "Bout Labs, LLC"
+	  #x09B8 "PlayerData Limited"
+	  #x09B9 "SAVOY ELECTRONIC LIGHTING"
+	  #x09BA "Elimo Engineering Ltd"
+	  #x09BB "SkyStream Corporation"
+	  #x09BC "Aerosens LLC"
+	  #x09BD "Centre Suisse d'Electronique et de Microtechnique SA"
+	  #x09BE "Vessel Ltd."
+	  #x09BF "Span.IO, Inc."
+	  #x09C0 "AnotherBrain inc."
+	  #x09C1 "Rosewill"
+	  #x09C2 "Universal Audio, Inc."
+	  #x09C3 "JAPAN TOBACCO INC."
+	  #x09C4 "UVISIO"
+	  #x09C5 "HungYi Microelectronics Co.,Ltd."
+	  #x09C6 "Honor Device Co., Ltd."
+	  #x09C7 "Combustion, LLC"
+	  #x09C8 "XUNTONG"
+	  #x09C9 "CrowdGlow Ltd"
+	  #x09CA "Mobitrace"
+	  #x09CB "Hx Engineering, LLC"
+	  #x09CC "Senso4s d.o.o."
+	  #x09CD "Blyott"
+	  #x09CE "Julius Blum GmbH"
+	  #x09CF "BlueStreak IoT, LLC"
+	  #x09D0 "Chess Wise B.V."
+	  #x09D1 "ABLEPAY TECHNOLOGIES AS"
+	  #x09D2 "Temperature Sensitive Solutions Systems Sweden AB"
+	  #x09D3 "HeartHero, inc."
+	  #x09D4 "ORBIS Inc."
+	  #x09D5 "GEAR RADIO ELECTRONICS CORP."
+	  #x09D6 "EAR TEKNIK ISITME VE ODIOMETRI CIHAZLARI SANAYI VE TICARET ANONIM SIRKETI"
+	  #x09D7 "Coyotta"
+	  #x09D8 "Synergy Tecnologia em Sistemas Ltda"
+	  #x09D9 "VivoSensMedical GmbH"
+	  #x09DA "Nagravision SA"
+	  #x09DB "Bionic Avionics Inc."
+	  #x09DC "AON2 Ltd."
+	  #x09DD "Innoware Development AB"
+	  #x09DE "JLD Technology Solutions, LLC"
+	  #x09DF "Magnus Technology Sdn Bhd"
+	  #x09E0 "Preddio Technologies Inc."
+	  #x09E1 "Tag-N-Trac Inc"
+	  #x09E2 "Wuhan Linptech Co.,Ltd."
+	  #x09E3 "Friday Home Aps"
+	  #x09E4 "CPS AS"
+	  #x09E5 "Mobilogix"
+	  #x09E6 "Masonite Corporation"
+	  #x09E7 "Kabushikigaisha HANERON"
+	  #x09E8 "Melange Systems Pvt. Ltd."
+	  #x09E9 "LumenRadio AB"
+	  #x09EA "Athlos Oy"
+	  #x09EB "KEAN ELECTRONICS PTY LTD"
+	  #x09EC "Yukon advanced optics worldwide, UAB"
+	  #x09ED "Sibel Inc."
+	  #x09EE "OJMAR SA"
+	  #x09EF "Steinel Solutions AG"
+	  #x09F0 "WatchGas B.V."
+	  #x09F1 "OM Digital Solutions Corporation"
+	  #x09F2 "Audeara Pty Ltd"
+	  #x09F3 "Beijing Zero Zero Infinity Technology Co.,Ltd."
+	  #x09F4 "Spectrum Technologies, Inc."
+	  #x09F5 "OKI Electric Industry Co., Ltd"
+	  #x09F6 "Mobile Action Technology Inc."
+	  #x09F7 "SENSATEC Co., Ltd."
+	  #x09F8 "R.O. S.R.L."
+	  #x09F9 "Hangzhou Yaguan Technology Co. LTD"
+	  #x09FA "Listen Technologies Corporation"
+	  #x09FB "TOITU CO., LTD."
+	  #x09FC "Confidex"
+	  #x09FD "Keep Technologies, Inc."
+	  #x09FE "Lichtvision Engineering GmbH"
+	  #x09FF "AIRSTAR"
+	  #x0A00 "Ampler Bikes OU"
+	  #x0A01 "Cleveron AS"
+	  #x0A02 "Ayxon-Dynamics GmbH"
+	  #x0A03 "donutrobotics Co., Ltd."
+	  #x0A04 "Flosonics Medical"
+	  #x0A05 "Southwire Company, LLC"
+	  #x0A06 "Shanghai wuqi microelectronics Co.,Ltd"
+	  #x0A07 "Reflow Pty Ltd"
+	  #x0A08 "Oras Oy"
+	  #x0A09 "ECCT"
+	  #x0A0A "Volan Technology Inc."
+	  #x0A0B "SIANA Systems"
+	  #x0A0C "Shanghai Yidian Intelligent Technology Co., Ltd."
+	  #x0A0D "Blue Peacock GmbH"
+	  #x0A0E "Roland Corporation"
+	  #x0A0F "LIXIL Corporation"
+	  #x0A10 "SUBARU Corporation"
+	  #x0A11 "Sensolus"
+	  #x0A12 "Dyson Technology Limited"
+	  #x0A13 "Tec4med LifeScience GmbH"
+	  #x0A14 "CROXEL, INC."
+	  #x0A15 "Syng Inc"
+	  #x0A16 "RIDE VISION LTD"
+	  #x0A17 "Plume Design Inc"
+	  #x0A18 "Cambridge Animal Technologies Ltd"
+	  #x0A19 "Maxell, Ltd."
+	  #x0A1A "Link Labs, Inc."
+	  #x0A1B "Embrava Pty Ltd"
+	  #x0A1C "INPEAK S.C."
+	  #x0A1D "API-K"
+	  #x0A1E "CombiQ AB"
+	  #x0A1F "DeVilbiss Healthcare LLC"
+	  #x0A20 "Jiangxi Innotech Technology Co., Ltd"
+	  #x0A21 "Apollogic Sp. z o.o."
+	  #x0A22 "DAIICHIKOSHO CO., LTD."
+	  #x0A23 "BIXOLON CO.,LTD"
+	  #x0A24 "Atmosic Technologies, Inc."
+	  #x0A25 "Eran Financial Services LLC"
+	  #x0A26 "Louis Vuitton"
+	  #x0A27 "AYU DEVICES PRIVATE LIMITED"
+	  #x0A28 "NanoFlex"
+	  #x0A29 "Worthcloud Technology Co.,Ltd"
+	  #x0A2A "Yamaha Corporation"
+	  #x0A2B "PaceBait IVS"
+	  #x0A2C "Shenzhen H&T Intelligent Control Co., Ltd"
+	  #x0A2D "Shenzhen Feasycom Technology Co., Ltd."
+	  #x0A2E "Zuma Array Limited"
+	  #x0A2F "Instamic, Inc."
+	  #x0A30 "Air-Weigh"
+	  #x0A31 "Nevro Corp."
+	  #x0A32 "Pinnacle Technology, Inc."
+	  #x0A33 "WMF AG"
+	  #x0A34 "Luxer Corporation"
+	  #x0A35 "safectory GmbH"
+	  #x0A36 "NGK SPARK PLUG CO., LTD."
+	  #x0A37 "2587702 Ontario Inc."
+	  #x0A38 "Bouffalo Lab (Nanjing)., Ltd."
+	  #x0A39 "BLUETICKETING SRL"
+	  #x0A3A "Incotex Co. Ltd."
+	  #x0A3B "Galileo Technology Limited"
+	  #x0A3C "Siteco GmbH"
+	  #x0A3D "DELABIE"
+	  #x0A3E "Hefei Yunlian Semiconductor Co., Ltd"
+	  #x0A3F "Shenzhen Yopeak Optoelectronics Technology Co., Ltd."
+	  #x0A40 "GEWISS S.p.A."
+	  #x0A41 "OPEX Corporation"
+	  #x0A42 "Motionalysis, Inc."
+	  #x0A43 "Busch Systems International Inc."
+	  #x0A44 "Novidan, Inc."
+	  #x0A45 "3SI Security Systems, Inc"
+	  #x0A46 "Beijing HC-Infinite Technology Limited"
+	  #x0A47 "The Wand Company Ltd"
+	  #x0A48 "JRC Mobility Inc."
+	  #x0A49 "Venture Research Inc."
+	  #x0A4A "Map Large, Inc."
+	  #x0A4B "MistyWest Energy and Transport Ltd."
+	  #x0A4C "SiFli Technologies (shanghai) Inc."
+	  #x0A4D "Lockn Technologies Private Limited"
+	  #x0A4E "Toytec Corporation"
+	  #x0A4F "VANMOOF Global Holding B.V."
+	  #x0A50 "Nextscape Inc."
+	  #x0A51 "CSIRO"
+	  #x0A52 "Follow Sense Europe B.V."
+	  #x0A53 "KKM COMPANY LIMITED"
+	  #x0A54 "SQL Technologies Corp."
+	  #x0A55 "Inugo Systems Limited"
+	  #x0A56 "ambie"
+	  #x0A57 "Meizhou Guo Wei Electronics Co., Ltd"
+	  #x0A58 "Indigo Diabetes"
+	  #x0A59 "TourBuilt, LLC"
+	  #x0A5A "Sontheim Industrie Elektronik GmbH"
+	  #x0A5B "LEGIC Identsystems AG"
+	  #x0A5C "Innovative Design Labs Inc."
+	  #x0A5D "MG Energy Systems B.V."
+	  #x0A5E "LaceClips llc"
+	  #x0A5F "stryker"
+	  #x0A60 "DATANG SEMICONDUCTOR TECHNOLOGY CO.,LTD"
+	  #x0A61 "Smart Parks B.V."
+	  #x0A62 "MOKO TECHNOLOGY Ltd"
+	  #x0A63 "Gremsy JSC"
+	  #x0A64 "Geopal system A/S"
+	  #x0A65 "Lytx, INC."
+	  #x0A66 "JUSTMORPH PTE. LTD."
+	  #x0A67 "Beijing SuperHexa Century Technology CO. Ltd"
+	  #x0A68 "Focus Ingenieria SRL"
+	  #x0A69 "HAPPIEST BABY, INC."
+	  #x0A6A "Scribble Design Inc."
+	  #x0A6B "Olympic Ophthalmics, Inc."
+	  #x0A6C "Pokkels"
+	  #x0A6D "KUUKANJYOKIN Co.,Ltd."
+	  #x0A6E "Pac Sane Limited"
+	  #x0A6F "Warner Bros."
+	  #x0A70 "Ooma"
+	  #x0A71 "Senquip Pty Ltd"
+	  #x0A72 "Jumo GmbH & Co. KG"
+	  #x0A73 "Innohome Oy"
+	  #x0A74 "MICROSON S.A."
+	  #x0A75 "Delta Cycle Corporation"
+	  #x0A76 "Synaptics Incorporated"
+	  #x0A77 "JMD PACIFIC PTE. LTD."
+	  #x0A78 "Shenzhen Sunricher Technology Limited"
+	  #x0A79 "Webasto SE"
+	  #x0A7A "Emlid Limited"
+	  #x0A7B "UniqAir Oy"
+	  #x0A7C "WAFERLOCK"
+	  #x0A7D "Freedman Electronics Pty Ltd"
+	  #x0A7E "Keba AG"
+	  #x0A7F "Intuity Medical"
+	  #x0A80 "Cleer Limited"
+	  #x0A81 "Universal Biosensors Pty Ltd"
+	  #x0A82 "Corsair"
+	  #x0A83 "Rivata, Inc."
+	  #x0A84 "Greennote Inc,"
+	  #x0A85 "Snowball Technology Co., Ltd."
+	  #x0A86 "ALIZENT International"
+	  #x0A87 "Shanghai Smart System Technology Co., Ltd"
+	  #x0A88 "PSA Peugeot Citroen"
+	  #x0A89 "SES-Imagotag"
+	  #x0A8A "HAINBUCH SPANNENDE TECHNIK"
+	  #x0A8B "SANlight GmbH"
+	  #x0A8C "DelpSys, s.r.o."
+	  #x0A8D "JCM TECHNOLOGIES S.A."
+	  #x0A8E "Perfect Company"
+	  #x0A8F "TOTO LTD."
+	  #x0A90 "Shenzhen Grandsun Electronic Co.,Ltd."
+	  #x0A91 "Monarch International Inc."
+	  #x0A92 "Carestream Dental LLC"
+	  #x0A93 "GiPStech S.r.l."
+	  #x0A94 "OOBIK Inc."
+	  #x0A95 "Pamex Inc."
+	  #x0A96 "Lightricity Ltd"
+	  #x0A97 "SensTek"
+	  #x0A98 "Foil, Inc."
+	  #x0A99 "Shanghai high-flying electronics technology Co.,Ltd"
+	  #x0A9A "TEMKIN ASSOCIATES, LLC"
+	  #x0A9B "Eello LLC"
+	  #x0A9C "Xi'an Fengyu Information Technology Co., Ltd."
+	  #x0A9D "Canon Finetech Nisca Inc."
+	  #x0A9E "LifePlus, Inc."
+	  #x0A9F "ista International GmbH"
+	  #x0AA0 "Loy Tec electronics GmbH"
+	  #x0AA1 "LINCOGN TECHNOLOGY CO. LIMITED"
+	  #x0AA2 "Care Bloom, LLC"
+	  #x0AA3 "DIC Corporation"
+	  #x0AA4 "FAZEPRO LLC"
+	  #x0AA5 "Shenzhen Uascent Technology Co., Ltd"
+	  #x0AA6 "Realityworks, inc."
+	  #x0AA7 "Urbanista AB"
+	  #x0AA8 "Zencontrol Pty Ltd"
+	  #x0AA9 "Mrinq Technologies LLC"
+	  #x0AAA "Computime International Ltd"
+	  #x0AAB "Anhui Listenai Co"
+	  #x0AAC "OSM HK Limited"
+	  #x0AAD "Adevo Consulting AB"
+	  #x0AAE "PS Engineering, Inc."
+	  #x0AAF "AIAIAI ApS"
+	  #x0AB0 "Visiontronic s.r.o."
+	  #x0AB1 "InVue Security Products Inc"
+	  #x0AB2 "TouchTronics, Inc."
+	  #x0AB3 "INNER RANGE PTY. LTD."
+	  #x0AB4 "Ellenby Technologies, Inc."
+	  #x0AB5 "Elstat Ltd [ Formerly Elstat Electronics Ltd.]"
+	  #x0AB6 "Xenter, Inc."
+	  #x0AB7 "LogTag North America Inc."
+	  #x0AB8 "Sens.ai Incorporated"
+	  #x0AB9 "STL"
+	  #x0ABA "Open Bionics Ltd."
+	  #x0ABB "R-DAS, s.r.o."
+	  #x0ABC "KCCS Mobile Engineering Co., Ltd."
+	  #x0ABD "Inventas AS"
+	  #x0ABE "Robkoo Information & Technologies Co., Ltd."
+	  #x0ABF "PAUL HARTMANN AG"
+	  #x0AC0 "Omni-ID USA, INC."
+	  #x0AC1 "Shenzhen Jingxun Technology Co., Ltd."
+	  #x0AC2 "RealMega Microelectronics technology (Shanghai) Co. Ltd."
+	  #x0AC3 "Kenzen, Inc."
+	  #x0AC4 "CODIUM"
+	  #x0AC5 "Flexoptix GmbH"
+	  #x0AC6 "Barnes Group Inc."
+	  #x0AC7 "Chengdu Aich Technology Co.,Ltd"
+	  #x0AC8 "Keepin Co., Ltd."
+	  #x0AC9 "Swedlock AB"
+	  #x0ACA "Shenzhen CoolKit Technology Co., Ltd"
+	  #x0ACB "ise Individuelle Software und Elektronik GmbH"
+	  #x0ACC "Nuvoton"
+	  #x0ACD "Visuallex Sport International Limited"
+	  #x0ACE "KOBATA GAUGE MFG. CO., LTD."
+	  #x0ACF "CACI Technologies"
+	  #x0AD0 "Nordic Strong ApS"
+	  #x0AD1 "EAGLE KINGDOM TECHNOLOGIES LIMITED"
+	  #x0AD2 "Lautsprecher Teufel GmbH"
+	  #x0AD3 "SSV Software Systems GmbH"
+	  #x0AD4 "Zhuhai Pantum Electronisc Co., Ltd"
+	  #x0AD5 "Streamit B.V."
+	  #x0AD6 "nymea GmbH"
+	  #x0AD7 "AL-KO Geraete GmbH"
+	  #x0AD8 "Franz Kaldewei GmbH&Co KG"
+	  #x0AD9 "Shenzhen Aimore. Co.,Ltd"
+	  #x0ADA "Codefabrik GmbH"
+	  #x0ADB "Reelables, Inc."
+	  #x0ADC "Duravit AG"
+	  #x0ADD "Boss Audio"
+	  #x0ADE "Vocera Communications, Inc."
+	  #x0ADF "Douglas Dynamics L.L.C."
+	  #x0AE0 "Viceroy Devices Corporation"
+	  #x0AE1 "ChengDu ForThink Technology Co., Ltd."
+	  #x0AE2 "IMATRIX SYSTEMS, INC."
+	  #x0AE3 "GlobalMed"
+	  #x0AE4 "DALI Alliance"
+	  #x0AE5 "unu GmbH"
+	  #x0AE6 "Hexology"
+	  #x0AE7 "Sunplus Technology Co., Ltd."
+	  #x0AE8 "LEVEL, s.r.o."
+	  #x0AE9 "FLIR Systems AB"
+	  #x0AEA "Borda Technology"
+	  #x0AEB "Square, Inc."
+	  #x0AEC "FUTEK ADVANCED SENSOR TECHNOLOGY, INC"
+	  #x0AED "Saxonar GmbH"
+	  #x0AEE "Velentium, LLC"
+	  #x0AEF "GLP German Light Products GmbH"
+	  #x0AF0 "Leupold & Stevens, Inc."
+	  #x0AF1 "CRADERS,CO.,LTD"
+	  #x0AF2 "Shanghai All Link Microelectronics Co.,Ltd"
+	  #x0AF3 "701x Inc."
+	  #x0AF4 "Radioworks Microelectronics PTY LTD"
+	  #x0AF5 "Unitech Electronic Inc."
+	  #x0AF6 "AMETEK, Inc."
+	  #x0AF7 "Irdeto"
+	  #x0AF8 "First Design System Inc."
+	  #x0AF9 "Unisto AG"
+	  #x0AFA "Chengdu Ambit Technology Co., Ltd."
+	  #x0AFB "SMT ELEKTRONIK GmbH"
+	  #x0AFC "Cerebrum Sensor Technologies Inc."
+	  #x0AFD "Weber Sensors, LLC"
+	  #x0AFE "Earda Technologies Co.,Ltd"))
   "Bluetooth manufacturer IDs.")
-
 
 ;;;; command definitions
 
