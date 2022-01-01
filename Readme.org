@@ -39,6 +39,7 @@
     | b           | toggle the blocked property of a device (disconnects connected device)                                 |
     | k           | remove a device (will disconnect and unpair)                                                           |
     | i           | show device information, such as RSSI value, device class and services                                 |
+    | A           | show host adapter information                                                                          |
     | r           | start discovery (scan) mode                                                                            |
     | R           | stop discovery (scan) mode                                                                             |
     | D           | toggle the discoverable property of the adapter                                                        |
