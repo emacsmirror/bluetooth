@@ -316,12 +316,13 @@ as they are used to gather the information from Bluez.")
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
   (let (dev-list)
-	(maphash (lambda (dev dev-info)
-			   (push (list dev
-						   (cl-map 'vector (lambda (key)
-											 (bluetooth--device-state key dev-info))
-								   (mapcar #'cl-first bluetooth--list-format)))
-					 dev-list))
+	(maphash (lambda (dev-id device)
+			   (when (bluetooth-device-properties device)
+				 (push (list dev-id
+							 (cl-map 'vector (lambda (key)
+											   (bluetooth--device-state key device))
+									 (mapcar #'cl-first bluetooth--list-format)))
+					   dev-list)))
 			 bluetooth--device-info)
 	dev-list))
 
