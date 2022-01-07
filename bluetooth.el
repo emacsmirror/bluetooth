@@ -271,6 +271,10 @@ This function evaluates to an alist of attribute/value pairs."
 						   (alist-get :adapter
 									  bluetooth--interfaces)))
 
+(defun bluetooth--adapter-property (adapter property)
+  "Return the value of ADAPTER's PROPERTY."
+  (cl-rest (assoc property (bluetooth--adapter-properties adapter))))
+
 (defconst bluetooth--list-format
   [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
    ("Blocked" 9 t) ("Trusted" 9 t)]
