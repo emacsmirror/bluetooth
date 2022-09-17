@@ -4521,8 +4521,9 @@ profiles."
 
 (bluetooth-defun-method "StopDiscovery" :adapter
   "Stop discovery mode."
-  (cancel-timer bluetooth--update-timer)
-  (setq bluetooth--update-timer nil))
+  (when bluetooth--update-timer
+	(cancel-timer bluetooth--update-timer)
+	(setq bluetooth--update-timer nil)))
 
 (bluetooth-defun-method "Pair" :device
   "Pair with device at point.")
