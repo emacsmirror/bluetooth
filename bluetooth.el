@@ -1569,7 +1569,7 @@ form by a call to ‘bluetooth-device-properties’."
   "Parse the CLASS property of a Bluetooth device."
   (cl-labels ((parse (field-def acc)
 					 (let-alist field-def
-					   (let* ((m-field (lsh (logand class .mask) .shift))
+					   (let* ((m-field (ash (logand class .mask) .shift))
 							  (res (cons .name
 										 (list (funcall .fn m-field .data))))
 							  (n-acc (cons res acc)))
@@ -1586,7 +1586,7 @@ form by a call to ‘bluetooth-device-properties’."
 (defun bluetooth--class-parse-bitfield (bitfield data)
   "Parse BITFIELD using DATA as specification."
   (or (delq nil (mapcar (lambda (x)
-						  (if (/= 0 (logand bitfield (lsh 1 (cl-first x))))
+						  (if (/= 0 (logand bitfield (ash 1 (cl-first x))))
 							  (cl-rest x)
 							nil))
 						data))
