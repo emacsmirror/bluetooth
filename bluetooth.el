@@ -376,25 +376,22 @@ as they are used to gather the information from Bluez.")
 						 x))
 					 args)))))
 
-(defun bluetooth--dbus-method (method api &rest args)
+(defun bluetooth--dbus-method (dev-id method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS."
-  (let ((dev-id (tabulated-list-get-id)))
-	(apply #'bluetooth--call-method dev-id api
-		   #'dbus-call-method-asynchronously method
-		   nil :timeout bluetooth--timeout args)))
+  (apply #'bluetooth--call-method dev-id api
+		 #'dbus-call-method-asynchronously method
+		 nil :timeout bluetooth--timeout args))
 
-(defun bluetooth--dbus-toggle (property api)
+(defun bluetooth--dbus-toggle (dev-id property api)
   "Toggle boolean PROPERTY on D-Bus API."
-  (let* ((dev-id (tabulated-list-get-id))
-		 (value (bluetooth--call-method dev-id api
-										#'dbus-get-property property)))
+  (let ((value (bluetooth--call-method dev-id api
+									   #'dbus-get-property property)))
 	(bluetooth--call-method dev-id api #'dbus-set-property property
 							(not value))))
 
-(defun bluetooth--dbus-set (property arg api)
+(defun bluetooth--dbus-set (dev-id property arg api)
   "Set PROPERTY to ARG on D-Bus API."
-  (let ((dev-id (tabulated-list-get-id)))
-	(bluetooth--call-method dev-id api #'dbus-set-property property arg)))
+  (bluetooth--call-method dev-id api #'dbus-set-property property arg))
 
 (defun bluetooth--initialize-mode-info ()
   "Get the current adapter state and display it.
@@ -4477,8 +4474,9 @@ connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-	  (bluetooth--dbus-method "ConnectProfile" :device (cl-first uuid))
-	(bluetooth--dbus-method "Connect" :device)))
+	  (bluetooth--dbus-method (tabulated-list-get-id) "ConnectProfile"
+							  :device (cl-first uuid))
+	(bluetooth--dbus-method (tabulated-list-get-id) "Connect" :device)))
 
 (defun bluetooth-disconnect (uuid)
   "Disconnect the Bluetooth device at point.
@@ -4488,8 +4486,9 @@ non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-	  (bluetooth--dbus-method "DisconnectProfile" :device (cl-first uuid))
-	(bluetooth--dbus-method "Disconnect" :device)))
+	  (bluetooth--dbus-method (tabulated-list-get-id) "DisconnectProfile"
+							  :device (cl-first uuid))
+	(bluetooth--dbus-method (tabulated-list-get-id) "Disconnect" :device)))
 
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
@@ -4509,7 +4508,9 @@ profiles."
   (let ((name (bluetooth--function-name method)))
 	`(defun ,(intern name) () ,docstring
 			(interactive)
-			(bluetooth--dbus-method ,method ,api)
+			(bluetooth--dbus-method (tabulated-list-get-id)
+									,method
+									,api)
 			,@body)))
 
 (bluetooth-defun-method "StartDiscovery" :adapter
@@ -4533,7 +4534,9 @@ profiles."
   (let ((name (bluetooth--function-name property "-toggle")))
 	`(defun ,(intern name) () ,docstring
 			(interactive)
-			(bluetooth--dbus-toggle ,property ,api))))
+			(bluetooth--dbus-toggle (tabulated-list-get-id)
+									,property
+									,api))))
 
 (bluetooth-defun-toggle "Blocked" :device
   "Mark Bluetooth device at point blocked.")
@@ -4549,12 +4552,12 @@ profiles."
 (defun bluetooth-set-alias (name)
   "Set alias of Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): ")
-  (bluetooth--dbus-set "Alias" name :device))
+  (bluetooth--dbus-set (tabulated-list-get-id) "Alias" name :device))
 
-(defun bluetooth-remove-device ()
+(defun bluetooth-remove-device (&optional dev-id)
   "Remove Bluetooth device at point (unpaires device and host)."
   (interactive)
-  (when-let (dev-id (tabulated-list-get-id))
+  (when-let (dev-id (or dev-id (tabulated-list-get-id)))
 	(bluetooth--call-method dev-id
 							:adapter
 							#'dbus-call-method-asynchronously
