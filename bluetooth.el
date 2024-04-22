@@ -162,6 +162,10 @@ property and state.")
 
 ;;;; internal functions
 
+(defun bluetooth-path (&rest nodes)
+  "Construct path from NODES, prepended by BLUETOOTH--ROOT."
+  (mapconcat #'identity (cons bluetooth--root nodes) "/"))
+
 (cl-defstruct bluetooth-device
   "A bluetooth device.  This structure holds all the device
 properties."
@@ -192,7 +196,7 @@ properties."
 (defun bluetooth--query-devices (adapter)
   "Return a list of bluetooth devices connected to ADAPTER."
   (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth--service
-								  (concat bluetooth--root "/" adapter)))
+								  (bluetooth-path adapter)))
 
 (defun bluetooth--device (device-id)
   "Return the device struct for DEVICE-ID."
@@ -227,14 +231,11 @@ properties."
 
 (defun bluetooth--device-create (adapter dev-id)
   "Create a bluetooth device struct for DEV-ID on ADAPTER."
-  (let* ((path (mapconcat #'identity
-						  (list bluetooth--root adapter dev-id)
-						  "/"))
-		 (props (dbus-get-all-properties bluetooth-bluez-bus
-										 bluetooth--service
-										 path
-										 (alist-get
-										  :device bluetooth--interfaces))))
+  (let ((props (dbus-get-all-properties bluetooth-bluez-bus
+										bluetooth--service
+										(bluetooth-path adapter dev-id)
+										(alist-get
+										 :device bluetooth--interfaces))))
 	(make-bluetooth-device :id dev-id
 						   :signal-handler nil
 						   :properties props)))
@@ -267,7 +268,7 @@ properties."
   "Return the properties of bluetooth ADAPTER.
 This function evaluates to an alist of attribute/value pairs."
   (dbus-get-all-properties bluetooth-bluez-bus bluetooth--service
-						   (concat bluetooth--root "/" adapter)
+						   (bluetooth-path adapter)
 						   (alist-get :adapter
 									  bluetooth--interfaces)))
 
@@ -363,9 +364,7 @@ as they are used to gather the information from Bluez.")
 							  "Adapter")
 							 "/" dev-id))
 					((eq :adapter api)
-					 (concat bluetooth--root
-							 "/"
-							 (cl-first (bluetooth--query-adapters))))
+					 (bluetooth-path (cl-first (bluetooth--query-adapters))))
 					(t nil)))
 		(interface (alist-get api bluetooth--interfaces)))
 	(when path
@@ -460,8 +459,7 @@ adapter reported by Bluez."
   (let ((adapter (cl-first (bluetooth--query-adapters))))
 	(dbus-register-signal bluetooth-bluez-bus
 						  nil
-						  (concat bluetooth--root "/"
-								  adapter)
+						  (bluetooth-path adapter)
 						  (alist-get :properties
 									 bluetooth--interfaces)
 						  "PropertiesChanged"
@@ -4780,8 +4778,7 @@ profiles."
 			 '("Alias" "Address" "AddressType" "Powered" "Discoverable"
 			   "DiscoverableTimeout" "Pairable" "PairableTimeout"
 			   "Discovering" "Roles" "Modalias"))
-	  (bluetooth--ins-line "Adapter" (concat bluetooth--root "/"
-											 adapter))
+	  (bluetooth--ins-line "Adapter" (bluetooth-path adapter))
 	  (funcall (-juxt #'bluetooth--ins-mfc-info
 					  #'bluetooth--ins-classes
 					  #'bluetooth--ins-services)
