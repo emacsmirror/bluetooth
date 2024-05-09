@@ -8,7 +8,7 @@
 
 .POSIX:
 EMACS = emacs
-EL = bluetooth.el
+EL = bluetooth-device.el bluetooth-lib.el bluetooth-pa.el bluetooth-uuid.el bluetooth.el
 ELPA_EXT = dash
 LDFLAGS = -L ./dep/dash
 
@@ -17,7 +17,7 @@ LDFLAGS = -L ./dep/dash
 compile: $(EL:.el=.elc)
 
 clean:
-	rm -f bluetooth.elc
+	rm -f *.elc
 
 depclean:
 	rm -rf ./dep/*
