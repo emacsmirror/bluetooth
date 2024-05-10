@@ -88,8 +88,9 @@
 (put 'bluetooth--mode-info 'risky-local-variable t)
 
 (cl-defstruct bluetooth-property
-  "Bluetooth state information for the mode line with texts shown
-in active and inactive state of a property."
+  "Bluetooth state information for the mode line.
+This structure holds the texts shown in active and inactive state
+of a property."
   active-p
   (active-text nil :read-only t)
   (inactive-text nil :read-only t))
@@ -158,7 +159,7 @@ as they are used to gather the information from Bluez.")
                dev-list))))
     dev-list))
 
-(defun bluetooth--print-list ()
+(defun bluetooth--print-list (&optional _device)
   "Print the device list."
   (with-current-buffer bluetooth-buffer-name
     (tabulated-list-print t)
@@ -298,6 +299,9 @@ profiles."
 
 
 (defmacro bluetooth-defun-method (method api docstring &rest body)
+  "Make a function calling a bluetooth METHOD using API.
+The function will have DOCSTRING as its documentation and is
+implemented by BODY."
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth-lib-make-function-name method)))
     `(defun ,(intern name) () ,docstring
@@ -324,6 +328,8 @@ profiles."
   "Pair with device at point.")
 
 (defmacro bluetooth-defun-toggle (property api docstring)
+  "Make a function to toggle a PROPERTY of a device using API.
+The function will have DOCSTRING as its documentation."
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth-lib-make-function-name property "-toggle")))
     `(defun ,(intern name) () ,docstring
@@ -349,7 +355,8 @@ profiles."
   (bluetooth-lib-dbus-set (tabulated-list-get-id) "Alias" name :device))
 
 (defun bluetooth-remove-device (&optional dev-id)
-  "Remove Bluetooth device at point (unpairs device and host)."
+  "Remove Bluetooth device at point or specified by DEV-ID.
+Calling this function will unpair device and host."
   (interactive)
   (when-let (dev-id (or dev-id (tabulated-list-get-id)))
     (bluetooth-lib-call-method dev-id

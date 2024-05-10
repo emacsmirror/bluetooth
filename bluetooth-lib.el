@@ -62,7 +62,7 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
                                         (lambda (x) (concat "-" (downcase x)))
                                         name t)))))
 
-(defvar bluetooth-lib--interfaces
+(defvar bluetooth-lib-interfaces
   '((:device . "org.bluez.Device1")
     (:adapter . "org.bluez.Adapter1")
     (:agent-manager . "org.bluez.AgentManager1")
@@ -71,11 +71,12 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
   "Bluez D-Bus interfaces.")
 
 (defun bluetooth-lib-interface (api)
-  "Return Bluez interface name for SERVICE."
-  (alist-get api bluetooth-lib--interfaces))
+  "Return Bluez interface name for API."
+  (alist-get api bluetooth-lib-interfaces))
 
-(defun bluetooth-lib--add-interface (api service-name)
-  (cl-pushnew (cons api service-name) bluetooth-lib--interfaces))
+(defun bluetooth-lib--add-interface (interface api)
+  "Add new INTERFACE using API (a keyword) as its Lisp name."
+  (cl-pushnew (cons api interface) bluetooth-lib-interfaces))
 
 (defun bluetooth-lib-path (&rest nodes)
   "Construct path from NODES, prepended by BLUETOOTH--ROOT."
@@ -124,24 +125,32 @@ This function evaluates to an alist of attribute/value pairs."
                      args)))))
 
 (defun bluetooth-lib-dbus-method (dev-id method api &rest args)
-  "Invoke METHOD on D-Bus API with ARGS."
+  "Invoke METHOD on D-Bus API with ARGS for device given by DEV-ID.
+The method is called asynchronously with the timeout specified by
+‘bluetooth-timeout’."
   (apply #'bluetooth-lib-call-method dev-id api
          #'dbus-call-method-asynchronously method
          nil :timeout bluetooth-timeout args))
 
 (defun bluetooth-lib-dbus-toggle (dev-id property api)
-  "Toggle boolean PROPERTY on D-Bus API."
+  "Toggle boolean PROPERTY on D-Bus API for device given by DEV-ID."
   (let ((value (bluetooth-lib-call-method dev-id api
                                           #'dbus-get-property property)))
     (bluetooth-lib-call-method dev-id api #'dbus-set-property property
                                (not value))))
 
 (defun bluetooth-lib-dbus-set (dev-id property arg api)
-  "Set PROPERTY to ARG on D-Bus API."
+  "Set PROPERTY to ARG on D-Bus API for device given by DEV-ID."
   (bluetooth-lib-call-method dev-id api #'dbus-set-property property arg))
 
 (defun bluetooth-lib-register-props-signal (service path api handler-fn)
-  "Register signal handler for property changes."
+  "Register signal handler to be notified when properties change.
+The argument SERVICE specifies the bluetooth service,
+e.g. ‘bluetooth-lib-service’, or is nil for adapter signals.  The
+argument PATH specifies the path to the D-Bus object holding the
+property.  API specifies the api interface to use, see
+‘bluetooth-lib-interfaces’.  HANDLER-FN is signal handler function taking the
+arguments described in ‘dbus-unregister-object’."
   (dbus-register-signal bluetooth-bluez-bus
                         service
                         path

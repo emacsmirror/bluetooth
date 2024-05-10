@@ -32,8 +32,8 @@
                   "bluetooth")
 
 (cl-defstruct bluetooth-device
-  "A bluetooth device.  This structure holds all the device
-properties."
+  "A bluetooth device.
+This structure holds all the device properties."
   (id nil :read-only t)
   signal-handler
   properties)
@@ -57,7 +57,12 @@ properties."
   "Return the device struct for DEVICE-ID."
   (gethash device-id bluetooth-device--info))
 
-(defun bluetooth-device--make-signal-handler (device callback)
+;; TODO use hooks so multiple callbacks can be used
+(defun bluetooth-device--make-signal-handler (device &optional callback)
+  "Make a signal handler for DEVICE, with CALLBACK.
+The optional callback function takes a ‘bluetooth-device’ as
+argument and is called after the device properties have been
+updated."
   (let ((adapter (bluetooth-device-property device "Adapter"))
         (dev-id (bluetooth-device-id device)))
     (cl-flet ((handler
@@ -68,7 +73,7 @@ properties."
                             (setf (bluetooth-device-property device key)
                                   value)))
                         (append changed-props invalidated-props))
-                  (funcall callback))))
+                  (when callback (funcall callback device)))))
       (bluetooth-lib-register-props-signal bluetooth-lib-service
                                            (concat adapter "/" dev-id)
                                            :device
@@ -85,22 +90,28 @@ properties."
                            :properties props)))
 
 (defun bluetooth-device--remove (dev-id)
-  "Remove the device with id DEV-ID from the device info."
+  "Remove the device with id DEV-ID from the device info.
+This also unregisters any signal handlers."
   (let ((device (bluetooth-device dev-id)))
     (when (bluetooth-device-signal-handler device)
       (dbus-unregister-object (bluetooth-device-signal-handler device))
       (setf (bluetooth-device-signal-handler device) nil)))
   (remhash dev-id bluetooth-device--info))
 
-(defun bluetooth-device--add (dev-id device callback)
-  "Add bluetooth DEVICE with id DEV-ID to device info."
+(defun bluetooth-device--add (dev-id device &optional callback)
+  "Add bluetooth DEVICE with id DEV-ID and CALLBACK to device info.
+The CALLBACK function is called from the properties signal
+handler after device properties have changed."
   (when (bluetooth-device-property device "Paired")
     (setf (bluetooth-device-signal-handler device)
           (bluetooth-device--make-signal-handler device callback)))
   (puthash dev-id device bluetooth-device--info))
 
-(defun bluetooth-device--update (dev-id device callback)
-  "Update device info for id DEV-ID with data in DEVICE."
+;; TODO use hooks so multiple callbacks can be used
+(defun bluetooth-device--update (dev-id device &optional callback)
+  "Update device info for id DEV-ID with data in DEVICE and CALLBACK.
+The CALLBACK function is installed only if no signal handler was
+installed before and is otherwise ignored."
   (setf (bluetooth-device-properties (bluetooth-device dev-id))
         (bluetooth-device-properties device))
   (when (and (bluetooth-device-property device "Paired")
@@ -108,9 +119,10 @@ properties."
     (setf (bluetooth-device-signal-handler device)
           (bluetooth-device--make-signal-handler device callback))))
 
-(defun bluetooth-device-init (callback)
-  "Initialize device handling, calling CALLBACK when properties
-change.  Call only once."
+(defun bluetooth-device-init (&optional callback)
+  "Initialize device handling, installing CALLBACK for every device.
+The CALLBACK function is called after device properties change.
+Call this function only once, usually at mode initialization."
   (setq bluetooth-device--info (make-hash-table :test #'equal))
   (mapc (lambda (adapter)
           (mapc (lambda (dev-id)
@@ -122,13 +134,14 @@ change.  Call only once."
         (bluetooth-lib-query-adapters)))
 
 (defun bluetooth-device-cleanup ()
-  "Cleanup the internal device table."
+  "Cleanup the internal device table, removing every known device.
+The cleanup will also unregister any installed signal handlers."
   (mapc #'bluetooth-device--remove
         (hash-table-keys bluetooth-device--info))
   (setq bluetooth-device--info nil))
 
-(defun bluetooth-device--update-info (adapter callback)
-  "Update the bluetooth devices list for ADAPTER."
+(defun bluetooth-device--update-info (adapter &optional callback)
+  "Update the device info for ADAPTER, installing CALLBACK."
   (let ((queried-devices (bluetooth-lib-query-devices adapter)))
     (mapc (lambda (dev-id)
             (bluetooth-device--remove dev-id))
@@ -142,8 +155,8 @@ change.  Call only once."
                                      callback)))
           queried-devices)))
 
-(defun bluetooth-device-update-all (callback)
-  "Update the device info for all adapters."
+(defun bluetooth-device-update-all (&optional callback)
+  "Update the device info for all adapters, installing CALLBACK."
   (mapc (lambda (adapter)
           (bluetooth-device--update-info adapter callback))
         (bluetooth-lib-query-adapters)))
@@ -166,6 +179,9 @@ form by a call to ‘bluetooth-device-properties’."
 
 
 (defun bluetooth-device-map (fn)
+  "Map FN over all devices.
+The function takes the device id and a ‘bluetooth-device’ as
+arguments."
   (maphash fn bluetooth-device--info))
 
 
