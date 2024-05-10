@@ -136,7 +136,7 @@
                    "RequestAuthorization" "AuthorizeService" "Cancel")))
     (setq bluetooth-pa--method-objects
           (cl-loop for method in methods
-                   for fname = (bluetooth-lib-make-function-name method "-")
+                   for fname = (bluetooth-lib-make-function-name method "-pa-")
                    collect (dbus-register-method bluetooth-bluez-bus
                                                  dbus-service-emacs
                                                  bluetooth-lib-own-path
