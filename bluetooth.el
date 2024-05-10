@@ -245,7 +245,7 @@ update the status display accordingly."
   "Ask for a UUID and return it in a form suitable for ‘interactive’."
   (if current-prefix-arg
       (let* ((device (bluetooth-device (tabulated-list-get-id)))
-             (uuids (bluetooth-device-uuids
+             (uuids (bluetooth-uuid-interpret
                      (bluetooth-device-properties device)))
              (profile (completing-read "Profile: "
                                        (mapcar (lambda (x)
@@ -532,7 +532,7 @@ Calling this function will unpair device and host."
                         '("%36s  " "%s " "(%s)")
                         (cl-second id-pair))
             (insert "\n"))
-          (bluetooth-device-uuids props))))
+          (bluetooth-uuid-interpret props))))
 
 (defun bluetooth--ins-rf-info (props)
   "Insert rf information from properties alist PROPS."

@@ -28,8 +28,6 @@
 (require 'bluetooth-lib)
 
 (defvar bluetooth-device--info nil "Device info obtained from Bluez.")
-(declare-function bluetooth-uuid-parse-service-class-uuid
-                  "bluetooth")
 
 (cl-defstruct bluetooth-device
   "A bluetooth device.
@@ -160,23 +158,6 @@ The cleanup will also unregister any installed signal handlers."
   (mapc (lambda (adapter)
           (bluetooth-device--update-info adapter callback))
         (bluetooth-lib-query-adapters)))
-
-(defun bluetooth-device-uuids (properties)
-  "Extract a UUID alist from device PROPERTIES.
-Each list element contains a UUID as the key and the
-corresponding description string as the value.  If no description
-string is available (e.g. for unknown UUIDs,) the UUID itself is
-the value.  The device properties can be obtained in the suitable
-form by a call to ‘bluetooth-device-properties’."
-  (let ((uuids (cl-rest (assoc "UUIDs" properties)))
-        (uuid-alist))
-    (when uuids
-      (dolist (id uuids)
-        (let ((desc (or (bluetooth-uuid-parse-service-class-uuid id)
-                        (list id))))
-          (push (list id desc) uuid-alist)))
-      (nreverse uuid-alist))))
-
 
 (defun bluetooth-device-map (fn)
   "Map FN over all devices.

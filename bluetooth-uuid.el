@@ -3865,6 +3865,21 @@
   "Return manufacturer name for given ID."
   (gethash id bluetooth-uuid--manufacturer-ids))
 
+(defun bluetooth-uuid-interpret (properties)
+  "Extract a UUID alist from device PROPERTIES.
+Each list element contains a UUID as the key and the
+corresponding description string as the value.  If no description
+string is available (e.g. for unknown UUIDs,) the UUID itself is
+the value.  The device properties can be obtained in the suitable
+form by a call to ‘bluetooth-device-properties’."
+  (let ((uuids (cl-rest (assoc "UUIDs" properties)))
+        (uuid-alist))
+    (when uuids
+      (dolist (id uuids)
+        (let ((desc (or (bluetooth-uuid-parse-service-class-uuid id)
+                        (list id))))
+          (push (list id desc) uuid-alist)))
+      (nreverse uuid-alist))))
 
 (provide 'bluetooth-uuid)
 ;;; bluetooth-uuid.el ends here
