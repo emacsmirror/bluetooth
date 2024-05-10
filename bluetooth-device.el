@@ -51,9 +51,16 @@ This structure holds all the device properties."
 (gv-define-simple-setter bluetooth-device-property
                          bluetooth-device--property-set)
 
-(defun bluetooth-device (device-id)
-  "Return the device struct for DEVICE-ID."
-  (gethash device-id bluetooth-device--info))
+(defun bluetooth-device (dev-id)
+  "Return the device struct or DEV-ID."
+  (gethash dev-id bluetooth-device--info))
+
+(defun bluetooth-device-path (device)
+  "Return the full path of DEVICE"
+  (when device
+    (concat (bluetooth-device-property device "Adapter")
+            "/"
+            (bluetooth-device-id device))))
 
 ;; TODO use hooks so multiple callbacks can be used
 (defun bluetooth-device--make-signal-handler (device &optional callback)

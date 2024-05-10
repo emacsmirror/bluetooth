@@ -26,9 +26,6 @@
 
 (require 'dbus)
 
-(declare-function bluetooth-device "bluetooth-device" (device-id))
-(declare-function bluetooth-device-property "bluetooth-device" (device property))
-
 (defcustom bluetooth-bluez-bus :system
   "D-Bus bus that Bluez is registered on.
 This is usually `:system' if bluetoothd runs as a system service, or
@@ -103,45 +100,30 @@ This function evaluates to an alist of attribute/value pairs."
   "Return the value of ADAPTER's PROPERTY."
   (cl-rest (assoc property (bluetooth-lib-adapter-properties adapter))))
 
-
-(defun bluetooth-lib-call-method (dev-id api function &rest args)
+(defun bluetooth-lib-call-method (path api method &rest args)
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
-  (let ((path (cond ((and (eq :device api)
-                          (not (null dev-id)))
-                     (concat (bluetooth-device-property
-                              (bluetooth-device dev-id)
-                              "Adapter")
-                             "/" dev-id))
-                    ((eq :adapter api)
-                     (bluetooth-lib-path (cl-first (bluetooth-lib-query-adapters))))
-                    (t nil)))
-        (interface (bluetooth-lib-interface api)))
+  (let ((interface (bluetooth-lib-interface api)))
     (when path
-      (apply function bluetooth-bluez-bus bluetooth-lib-service path interface
-             (mapcar (lambda (x)
-                       (if (eq x :path-devid)
-                           (concat path "/" dev-id)
-                         x))
-                     args)))))
+      (apply method bluetooth-bluez-bus bluetooth-lib-service path interface args))))
 
-(defun bluetooth-lib-dbus-method (dev-id method api &rest args)
+(defun bluetooth-lib-dbus-method (path method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS for device given by DEV-ID.
 The method is called asynchronously with the timeout specified by
 ‘bluetooth-timeout’."
-  (apply #'bluetooth-lib-call-method dev-id api
+  (apply #'bluetooth-lib-call-method path api
          #'dbus-call-method-asynchronously method
          nil :timeout bluetooth-timeout args))
 
-(defun bluetooth-lib-dbus-toggle (dev-id property api)
+(defun bluetooth-lib-dbus-toggle (path property api)
   "Toggle boolean PROPERTY on D-Bus API for device given by DEV-ID."
-  (let ((value (bluetooth-lib-call-method dev-id api
+  (let ((value (bluetooth-lib-call-method path api
                                           #'dbus-get-property property)))
-    (bluetooth-lib-call-method dev-id api #'dbus-set-property property
+    (bluetooth-lib-call-method path api #'dbus-set-property property
                                (not value))))
 
-(defun bluetooth-lib-dbus-set (dev-id property arg api)
+(defun bluetooth-lib-dbus-set (path property arg api)
   "Set PROPERTY to ARG on D-Bus API for device given by DEV-ID."
-  (bluetooth-lib-call-method dev-id api #'dbus-set-property property arg))
+  (bluetooth-lib-call-method path api #'dbus-set-property property arg))
 
 (defun bluetooth-lib-register-props-signal (service path api handler-fn)
   "Register signal handler to be notified when properties change.

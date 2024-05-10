@@ -238,6 +238,14 @@ update the status display accordingly."
           data)
     (force-mode-line-update)))
 
+;; TODO remove this and replace by general path construction function
+(defun bluetooth--make-path (api)
+  "Return the path of the currently selected device."
+  (cond ((eq :device api)
+         (bluetooth-device-path (bluetooth-device (tabulated-list-get-id))))
+        ((eq :adapter api)
+         (bluetooth-lib-path (cl-first (bluetooth-lib-query-adapters))))))
+
 
 ;;;; command definitions
 
@@ -269,9 +277,9 @@ connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-      (bluetooth-lib-dbus-method (tabulated-list-get-id) "ConnectProfile"
+      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "ConnectProfile"
                                  :device (cl-first uuid))
-    (bluetooth-lib-dbus-method (tabulated-list-get-id) "Connect" :device)))
+    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Connect" :device)))
 
 (defun bluetooth-disconnect (uuid)
   "Disconnect the Bluetooth device at point.
@@ -281,9 +289,9 @@ non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
-      (bluetooth-lib-dbus-method (tabulated-list-get-id) "DisconnectProfile"
+      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "DisconnectProfile"
                                  :device (cl-first uuid))
-    (bluetooth-lib-dbus-method (tabulated-list-get-id) "Disconnect" :device)))
+    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Disconnect" :device)))
 
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
@@ -297,19 +305,21 @@ profiles."
   (let ((prefix-arg (list 4)))
     (command-execute #'bluetooth-disconnect)))
 
-
 (defmacro bluetooth-defun-method (method api docstring &rest body)
   "Make a function calling a bluetooth METHOD using API.
 The function will have DOCSTRING as its documentation and is
 implemented by BODY."
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth-lib-make-function-name method)))
-    `(defun ,(intern name) () ,docstring
-            (interactive)
-            (bluetooth-lib-dbus-method (tabulated-list-get-id)
-                                       ,method
-                                       ,api)
-            ,@body)))
+    (cl-with-gensyms (gmethod gapi)
+      `(defun ,(intern name) () ,docstring
+              (interactive)
+              (let ((,gmethod ,method)
+                    (,gapi ,api))
+                (bluetooth-lib-dbus-method (bluetooth--make-path ,gapi)
+                                           ,gmethod
+                                           ,gapi)
+                ,@body)))))
 
 (bluetooth-defun-method "StartDiscovery" :adapter
   "Start discovery mode."
@@ -332,11 +342,14 @@ implemented by BODY."
 The function will have DOCSTRING as its documentation."
   (declare (doc-string 3) (indent 2))
   (let ((name (bluetooth-lib-make-function-name property "-toggle")))
-    `(defun ,(intern name) () ,docstring
-            (interactive)
-            (bluetooth-lib-dbus-toggle (tabulated-list-get-id)
-                                       ,property
-                                       ,api))))
+    (cl-with-gensyms (gproperty gapi)
+      `(defun ,(intern name) () ,docstring
+              (interactive)
+              (let ((,gproperty ,property)
+                    (,gapi ,api))
+                (bluetooth-lib-dbus-toggle (bluetooth--make-path ,gapi)
+                                           ,gproperty
+                                           ,gapi))))))
 
 (bluetooth-defun-toggle "Blocked" :device
   "Mark Bluetooth device at point blocked.")
@@ -352,20 +365,21 @@ The function will have DOCSTRING as its documentation."
 (defun bluetooth-set-alias (name)
   "Set alias of Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): ")
-  (bluetooth-lib-dbus-set (tabulated-list-get-id) "Alias" name :device))
+  (bluetooth-lib-dbus-set (bluetooth--make-path :device) "Alias" name :device))
 
 (defun bluetooth-remove-device (&optional dev-id)
   "Remove Bluetooth device at point or specified by DEV-ID.
 Calling this function will unpair device and host."
   (interactive)
-  (when-let (dev-id (or dev-id (tabulated-list-get-id)))
-    (bluetooth-lib-call-method dev-id
+  (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
+    (bluetooth-lib-call-method (bluetooth-device-property device "Adapter")
                                :adapter
                                #'dbus-call-method-asynchronously
                                "RemoveDevice"
                                nil
                                :timeout bluetooth-timeout
-                               :object-path :path-devid)))
+                               :object-path
+                               (bluetooth-device-path device))))
 
 (defun bluetooth-end-of-list ()
   "Move cursor to the last list element."
