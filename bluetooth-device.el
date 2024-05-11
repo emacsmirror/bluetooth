@@ -74,9 +74,10 @@ updated."
                 (_interface changed-props invalidated-props)
                 (let ((device (bluetooth-device dev-id)))
                   (mapc (lambda (prop)
-                          (cl-destructuring-bind (key (value)) prop
-                            (setf (bluetooth-device-property device key)
-                                  value)))
+                          (ignore-errors
+                            (cl-destructuring-bind (key (value)) prop
+                              (setf (bluetooth-device-property device key)
+                                    value))))
                         (append changed-props invalidated-props))
                   (when callback (funcall callback device)))))
       (bluetooth-lib-register-props-signal bluetooth-lib-service
