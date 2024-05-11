@@ -255,7 +255,7 @@ update the status display accordingly."
   (if current-prefix-arg
       (let* ((device (bluetooth-device (tabulated-list-get-id)))
              (uuids (bluetooth-uuid-interpret
-                     (bluetooth-device-properties device)))
+                     (bluetooth-device-property device "UUIDs")))
              (profile (completing-read "Profile: "
                                        (mapcar (lambda (x)
                                                  (let ((desc (cl-second x)))
@@ -540,14 +540,14 @@ Calling this function will unpair device and host."
 
 (defun bluetooth--ins-services (props)
   "Insert device services from properties alist PROPS."
-  (when (cl-rest (assoc "UUIDs" props))
+  (when-let (uuids (cl-rest (assoc "UUIDs" props)))
     (bluetooth--ins-heading "\nServices (UUIDs)\n")
     (mapc (lambda (id-pair)
             (--zip-with (insert (format it other))
                         '("%36s  " "%s " "(%s)")
                         (cl-second id-pair))
             (insert "\n"))
-          (bluetooth-uuid-interpret props))))
+          (bluetooth-uuid-interpret uuids))))
 
 (defun bluetooth--ins-rf-info (props)
   "Insert rf information from properties alist PROPS."
