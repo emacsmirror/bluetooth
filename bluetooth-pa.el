@@ -24,11 +24,17 @@
 
 ;;; Code:
 
+(require 'dbus)
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
 
 (declare-function bluetooth-uuid-parse-service-class-uuid
                   "bluetooth")
+
+;; our path name for the pairing agent
+(defconst bluetooth-pa-own-path (concat dbus-path-emacs "/bluetooth")
+  "D-Bus object path for the pairing agent.")
+
 
 (defvar bluetooth-pa--method-objects '() "D-Bus method objects.")
 
@@ -139,21 +145,19 @@
                    for fname = (bluetooth-lib-make-function-name method "-pa-")
                    collect (dbus-register-method bluetooth-bluez-bus
                                                  dbus-service-emacs
-                                                 bluetooth-lib-own-path
+                                                 bluetooth-pa-own-path
                                                  (bluetooth-lib-interface :agent)
                                                  method (intern fname) t)))
     (dbus-register-service :session dbus-service-emacs)
-    (dbus-call-method bluetooth-bluez-bus bluetooth-lib-service bluetooth-lib-root
-                      (bluetooth-lib-interface :agent-manager)
-                      "RegisterAgent"
-                      :object-path bluetooth-lib-own-path "KeyboardDisplay")))
+    (bluetooth-lib-dbus-sync-method bluetooth-root "RegisterAgent"
+                                :agent-manager
+                                :object-path bluetooth-pa-own-path "KeyboardDisplay")))
 
 (defun bluetooth-pa-unregister-agent ()
   "Unregister agent and clean up."
-  (dbus-call-method bluetooth-bluez-bus bluetooth-lib-service bluetooth-lib-root
-                    (bluetooth-lib-interface :agent-manager)
-                    "UnregisterAgent"
-                    :object-path bluetooth-lib-own-path)
+  (bluetooth-lib-dbus-sync-method bluetooth-root "UnregisterAgent"
+                              :agent-manager
+                              :object-path bluetooth-pa-own-path)
   (mapc #'dbus-unregister-object bluetooth-pa--method-objects))
 
 (provide 'bluetooth-pa)

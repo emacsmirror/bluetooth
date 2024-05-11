@@ -44,10 +44,6 @@ This is usually `:system' if bluetoothd runs as a system service, or
   :type '(string)
   :group 'bluetooth)
 
-;; our path name for the pairing agent
-(defconst bluetooth-lib-own-path (concat dbus-path-emacs "/bluetooth")
-  "D-Bus object path for the pairing agent.")
-
 ;; Bluez root path as defined by the Bluez API
 (defcustom bluetooth-root "/org/bluez"
   "D-Bus path root for Bluez."
