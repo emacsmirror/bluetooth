@@ -373,12 +373,9 @@ The function will have DOCSTRING as its documentation."
 Calling this function will unpair device and host."
   (interactive)
   (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
-    (bluetooth-lib-call-method (bluetooth-device-property device "Adapter")
-                               :adapter
-                               #'dbus-call-method-asynchronously
+    (bluetooth-lib-dbus-method (bluetooth-device-property device "Adapter")
                                "RemoveDevice"
-                               nil
-                               :timeout bluetooth-timeout
+                               :adapter
                                :object-path
                                (bluetooth-device-path device))))
 

@@ -110,30 +110,37 @@ This function evaluates to an alist of attribute/value pairs."
   "Return the value of ADAPTER's PROPERTY."
   (cl-rest (assoc property (bluetooth-lib-adapter-properties adapter))))
 
-(defun bluetooth-lib-call-method (path api method &rest args)
-  "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
+(defun bluetooth-lib--call-method (path api method &rest args)
+  "For PATH, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((interface (bluetooth-lib-interface api)))
     (when path
       (apply method bluetooth-bluez-bus bluetooth-service path interface args))))
 
 (defun bluetooth-lib-dbus-method (path method api &rest args)
-  "Invoke METHOD on D-Bus API with ARGS for device given by DEV-ID.
+  "Invoke METHOD on D-Bus API with ARGS for object at PATH.
 The method is called asynchronously with the timeout specified by
 ‘bluetooth-timeout’."
-  (apply #'bluetooth-lib-call-method path api
+  (apply #'bluetooth-lib--call-method path api
          #'dbus-call-method-asynchronously method
          nil :timeout bluetooth-timeout args))
 
+(defun bluetooth-lib-dbus-sync-method (path method api &rest args)
+  "Invoke METHOD on D-Bus API with ARGS for object at PATH.
+The method is called synchronously."
+  (apply #'bluetooth-lib--call-method path api
+         #'dbus-call-method method
+         args))
+
 (defun bluetooth-lib-dbus-toggle (path property api)
-  "Toggle boolean PROPERTY on D-Bus API for device given by DEV-ID."
-  (let ((value (bluetooth-lib-call-method path api
+  "Toggle boolean PROPERTY on D-Bus API for object at PATH."
+  (let ((value (bluetooth-lib--call-method path api
                                           #'dbus-get-property property)))
-    (bluetooth-lib-call-method path api #'dbus-set-property property
+    (bluetooth-lib--call-method path api #'dbus-set-property property
                                (not value))))
 
 (defun bluetooth-lib-dbus-set (path property arg api)
-  "Set PROPERTY to ARG on D-Bus API for device given by DEV-ID."
-  (bluetooth-lib-call-method path api #'dbus-set-property property arg))
+  "Set PROPERTY to ARG on D-Bus API for object at PATH."
+  (bluetooth-lib--call-method path api #'dbus-set-property property arg))
 
 (defun bluetooth-lib-register-props-signal (service path api handler-fn)
   "Register signal handler to be notified when properties change.
