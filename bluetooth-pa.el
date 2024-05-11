@@ -38,10 +38,10 @@
 (defun bluetooth-pa--release ()
   "Clean up after Bluetooth agent release.")
 
-(defmacro bluetooth-pa--with-alias (device &rest body)
-  "Evaluate BODY with DEVICE alias bound to ALIAS."
+(defmacro bluetooth-pa--with-alias (path &rest body)
+  "Evaluate BODY with alias of device at PATH bound to ALIAS."
   (declare (indent defun))
-  `(let* ((dev-id (cl-first (last (split-string ,device "/"))))
+  `(let* ((dev-id (cl-first (last (split-string ,path "/"))))
           (dev (bluetooth-device dev-id))
           (alias (if dev
                      (bluetooth-device-property dev "Alias")
@@ -58,10 +58,10 @@
          (quit (signal 'dbus-error '("org.bluez.Error.Canceled"))))
        (signal 'dbus-error '("org.bluez.Error.Rejected"))))
 
-(defun bluetooth-pa--request-pin-code (device)
-  "Request a pin code for DEVICE."
+(defun bluetooth-pa--request-pin-code (path)
+  "Request a pin code for device at PATH."
   (bluetooth-pa--maybe-cancel-reject
-   (bluetooth-pa--with-alias device
+   (bluetooth-pa--with-alias path
      (let* ((pin (read-from-minibuffer
                   (format "Enter Bluetooth PIN for `%s': " alias)))
             (trimmed-pin (substring pin 0 (min (length pin) 16)))
@@ -74,46 +74,46 @@
               nil)
              (t trimmed-pin))))))
 
-(defun bluetooth-pa--display-pin-code (device pincode)
-  "Display the PINCODE for DEVICE."
-  (bluetooth-pa--with-alias device
+(defun bluetooth-pa--display-pin-code (path pincode)
+  "Display the PINCODE for device at PATH."
+  (bluetooth-pa--with-alias path
     (message "Bluetooth PIN for `%s': %s" alias pincode)
     :ignore))
 
-(defun bluetooth-pa--request-passkey (device)
-  "Request passkey for DEVICE."
+(defun bluetooth-pa--request-passkey (path)
+  "Request passkey for device at PATH."
   (bluetooth-pa--maybe-cancel-reject
-   (bluetooth-pa--with-alias device
+   (bluetooth-pa--with-alias path
      (let ((pk (read-from-minibuffer
                 (format "Enter Bluetooth Passkey for `%s': (0..999999) "
                         alias))))
        (min (max (string-to-number pk) 0) 999999)))))
 
-(defun bluetooth-pa--display-passkey (device passkey _)
-  "Display PASSKEY for DEVICE, ignoring ENTERED (for now)."
-  (bluetooth-pa--with-alias device
+(defun bluetooth-pa--display-passkey (path passkey _)
+  "Display PASSKEY for device at PATH, ignoring ENTERED (for now)."
+  (bluetooth-pa--with-alias path
     (message "Bluetooth Passkey for `%s': %06d" alias passkey)
     :ignore))
 
-(defun bluetooth-pa--request-confirmation (device passkey)
-  "Request user confirmation that DEVICE's PASSKEY is correct."
+(defun bluetooth-pa--request-confirmation (path passkey)
+  "Request user confirmation that PASSKEY for device at PATH is correct."
   (bluetooth-pa--maybe-cancel-reject
-   (bluetooth-pa--with-alias device
+   (bluetooth-pa--with-alias path
      (y-or-n-p
       (format "Is Bluetooth Passkey %06d for `%s' correct? " passkey alias))))
   :ignore)
 
-(defun bluetooth-pa--request-authorization (device)
-  "Authorize Bluetooth DEVICE."
+(defun bluetooth-pa--request-authorization (path)
+  "Authorize Bluetooth device at PATH."
   (bluetooth-pa--maybe-cancel-reject
-   (bluetooth-pa--with-alias device
+   (bluetooth-pa--with-alias path
      (y-or-n-p (format "Authorize Bluetooth device `%s'? " alias))))
   :ignore)
 
-(defun bluetooth-pa--authorize-service (device uuid)
-  "Authorize Bluetooth service UUID for DEVICE."
+(defun bluetooth-pa--authorize-service (path uuid)
+  "Authorize Bluetooth service UUID for device at PATH."
   (bluetooth-pa--maybe-cancel-reject
-   (bluetooth-pa--with-alias device
+   (bluetooth-pa--with-alias path
      (let ((p-uuid (bluetooth-uuid-parse-service-class-uuid uuid)))
        (y-or-n-p
         (format "Authorize Bluetooth service `%s' for device `%s'? "
