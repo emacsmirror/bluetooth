@@ -616,7 +616,7 @@ offering device management functions, e.g. pairing, connecting,
 scanning the bus, displaying device info etc."
   (interactive)
   ;; make sure D-Bus is (made) available
-  (dbus-ping bluetooth-bluez-bus bluetooth-lib-service bluetooth-timeout)
+  (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
   (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
     (unless (derived-mode-p 'bluetooth-mode)
       (erase-buffer)

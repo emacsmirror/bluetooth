@@ -80,7 +80,7 @@ updated."
                                     value))))
                         (append changed-props invalidated-props))
                   (when callback (funcall callback device)))))
-      (bluetooth-lib-register-props-signal bluetooth-lib-service
+      (bluetooth-lib-register-props-signal bluetooth-service
                                            (concat adapter "/" dev-id)
                                            :device
                                            #'handler))))
@@ -98,10 +98,9 @@ This also unregisters any signal handlers."
   "Add device with DEV-ID on ADAPTER and CALLBACK to device info.
 The CALLBACK function is called from the properties signal
 handler after device properties have changed."
-  (let* ((props (dbus-get-all-properties bluetooth-bluez-bus
-                                         bluetooth-lib-service
-                                         (bluetooth-lib-path adapter dev-id)
-                                         (bluetooth-lib-interface :device)))
+  (let* ((props (bluetooth-lib-query-properties
+                 (bluetooth-lib-path adapter dev-id)
+                 :device))
          (device (make-bluetooth-device :id dev-id
                                         :signal-handler nil
                                         :properties props)))

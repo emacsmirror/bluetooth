@@ -39,14 +39,20 @@ This is usually `:system' if bluetoothd runs as a system service, or
   :group 'bluetooth)
 
 ;; Bluez service name as defined by the Bluez API
-(defconst bluetooth-lib-service "org.bluez" "D-Bus service name of Bluez.")
-
-;; Bluez root path as defined by the Bluez API
-(defconst bluetooth-lib-root "/org/bluez" "D-Bus path root for Bluez.")
+(defcustom bluetooth-service "org.bluez"
+  "D-Bus service name of Bluez."
+  :type '(string)
+  :group 'bluetooth)
 
 ;; our path name for the pairing agent
 (defconst bluetooth-lib-own-path (concat dbus-path-emacs "/bluetooth")
   "D-Bus object path for the pairing agent.")
+
+;; Bluez root path as defined by the Bluez API
+(defcustom bluetooth-root "/org/bluez"
+  "D-Bus path root for Bluez."
+  :type '(string)
+  :group 'bluetooth)
 
 (eval-and-compile
   (defun bluetooth-lib-make-function-name (name &optional prefix)
@@ -77,24 +83,28 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
 
 (defun bluetooth-lib-path (&rest nodes)
   "Construct path from NODES, prepended by BLUETOOTH--ROOT."
-  (mapconcat #'identity (cons bluetooth-lib-root nodes) "/"))
+  (mapconcat #'identity (cons bluetooth-root nodes) "/"))
 
 (defun bluetooth-lib-query-adapters ()
   "Return a list of bluetooth adapters."
   (dbus-introspect-get-node-names
-   bluetooth-bluez-bus bluetooth-lib-service bluetooth-lib-root))
+   bluetooth-bluez-bus bluetooth-service bluetooth-root))
 
 (defun bluetooth-lib-query-devices (adapter)
   "Return a list of bluetooth devices connected to ADAPTER."
-  (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth-lib-service
+  (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth-service
                                   (bluetooth-lib-path adapter)))
+
+(defun bluetooth-lib-query-properties (path api)
+  "Return all properties of SERVICE on PATH using API."
+  (dbus-get-all-properties bluetooth-bluez-bus bluetooth-service
+                           path
+                           (bluetooth-lib-interface api)))
 
 (defun bluetooth-lib-adapter-properties (adapter)
   "Return the properties of bluetooth ADAPTER.
 This function evaluates to an alist of attribute/value pairs."
-  (dbus-get-all-properties bluetooth-bluez-bus bluetooth-lib-service
-                           (bluetooth-lib-path adapter)
-                           (bluetooth-lib-interface :adapter)))
+  (bluetooth-lib-query-properties (bluetooth-lib-path adapter) :adapter))
 
 (defun bluetooth-lib-adapter-property (adapter property)
   "Return the value of ADAPTER's PROPERTY."
@@ -104,7 +114,7 @@ This function evaluates to an alist of attribute/value pairs."
   "For DEV-ID, invoke D-Bus FUNCTION on API, passing ARGS."
   (let ((interface (bluetooth-lib-interface api)))
     (when path
-      (apply method bluetooth-bluez-bus bluetooth-lib-service path interface args))))
+      (apply method bluetooth-bluez-bus bluetooth-service path interface args))))
 
 (defun bluetooth-lib-dbus-method (path method api &rest args)
   "Invoke METHOD on D-Bus API with ARGS for device given by DEV-ID.
@@ -128,7 +138,7 @@ The method is called asynchronously with the timeout specified by
 (defun bluetooth-lib-register-props-signal (service path api handler-fn)
   "Register signal handler to be notified when properties change.
 The argument SERVICE specifies the bluetooth service,
-e.g. ‘bluetooth-lib-service’, or is nil for adapter signals.  The
+e.g. ‘bluetooth-service’, or is nil for adapter signals.  The
 argument PATH specifies the path to the D-Bus object holding the
 property.  API specifies the api interface to use, see
 ‘bluetooth-lib-interfaces’.  HANDLER-FN is signal handler function taking the
