@@ -167,10 +167,13 @@ as they are used to gather the information from Bluez.")
          (bound-and-true-p hl-line-mode)
          (hl-line-highlight))))
 
+(defun bluetooth--update-with-callback ()
+  (bluetooth-device-update-all #'bluetooth--print-list))
+
 (defun bluetooth--update-print ()
   "Update device info and print device list view."
   (ignore-errors
-    (bluetooth-device-update-all #'bluetooth--print-list)
+    (bluetooth--update-with-callback)
     (bluetooth--print-list)))
 
 ;; Build up the index for Imenu.  This function is used as
@@ -202,9 +205,7 @@ This function only uses the first adapter reported by Bluez."
     (bluetooth-pa-unregister-agent)
     (dbus-unregister-object bluetooth--adapter-signal)
     (bluetooth-device-cleanup)
-    (remove-hook 'tabulated-list-revert-hook
-                 (lambda ()
-                   (bluetooth-device-update-all #'bluetooth--print-list)))
+    (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
     (cancel-timer bluetooth--update-timer)
     (setq bluetooth--update-timer nil)))
 
@@ -487,9 +488,7 @@ Calling this function will unpair device and host."
         tabulated-list-entries #'bluetooth--list-entries
         tabulated-list-padding 0
         tabulated-list-sort-key (cons "Alias" nil))
-  (add-hook 'tabulated-list-revert-hook
-            (lambda ()
-              (bluetooth-device-update-all #'bluetooth--print-list)))
+  (add-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
   (tabulated-list-init-header)
   (tabulated-list-print)
   (hl-line-mode))
