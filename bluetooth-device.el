@@ -83,14 +83,13 @@ updated."
   (let ((adapter (bluetooth-device-property device "Adapter"))
         (dev-id (bluetooth-device-id device)))
     (cl-flet ((handler
-                (_interface changed-props invalidated-props)
+                (_interface changed-props _invalidated-props)
                 (let ((device (bluetooth-device dev-id)))
                   (mapc (lambda (prop)
-                          (ignore-errors
-                            (cl-destructuring-bind (key (value)) prop
-                              (setf (bluetooth-device-property device key)
-                                    value))))
-                        (append changed-props invalidated-props))
+                          (cl-destructuring-bind (key (value)) prop
+                            (setf (bluetooth-device-property device key)
+                                  value)))
+                        (append changed-props))
                   (when callback (funcall callback device)))))
       (bluetooth-lib-register-props-signal bluetooth-service
                                            (concat adapter "/" dev-id)
