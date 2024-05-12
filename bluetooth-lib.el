@@ -155,6 +155,43 @@ arguments described in ‘dbus-unregister-object’."
                         :arg-namespace
                         (bluetooth-lib-interface api)))
 
+(defun bluetooth-lib-get-objects (path)
+  "Get all Bluez objects on PATH."
+  (dbus-get-all-managed-objects bluetooth-bluez-bus bluetooth-service path))
+
+(defun bluetooth-lib-match (objects key &optional value)
+  "Find all Bluez OBJECTS matching KEY and VALUE.
+The argument OBJECTS must be a list of Bluez objects as obtained
+by a call to ‘bluetooth-lib-get-objects’.  This function returns
+a list of objects that contain KEY, a regexp, optionally filtered
+for VALUE, a regexp or something that can be compared with ‘eql’.
+
+The first element of every object in the list is a path to that
+object.  It can be used for further analysis using, e. g.,
+‘bluetooth-lib-query-properties’."
+  (cl-labels ((matches (obj what)
+                (let ((case-fold-search nil))
+                  (cond ((and (stringp obj)
+                              (stringp what))
+                         (string-match-p what obj))
+                        ((atom obj) (eql obj what))
+                        ((and (consp obj)
+                              (atom (car obj))
+                              (atom (cdr obj)))
+                         (and (matches (car obj) key)
+                              (if value
+                                  (matches (cdr obj) value)
+                                t)))
+                        ((consp obj)
+                         (or (matches (car obj) key)
+                             (matches (cdr obj) key)))
+                        (t nil)))))
+    (let (result)
+      (dolist (obj objects)
+        (when (matches obj key)
+          (push obj result)))
+      result)))
+
 (provide 'bluetooth-lib)
 ;;; bluetooth-lib.el ends here
 
