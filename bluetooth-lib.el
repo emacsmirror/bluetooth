@@ -61,21 +61,42 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
                                         (lambda (x) (concat "-" (downcase x)))
                                         name t)))))
 
-(defvar bluetooth-lib-interfaces
-  '((:device . "org.bluez.Device1")
-    (:adapter . "org.bluez.Adapter1")
-    (:agent-manager . "org.bluez.AgentManager1")
-    (:agent . "org.bluez.Agent1")
-    (:properties . "org.freedesktop.DBus.Properties"))
-  "Bluez D-Bus interfaces.")
+(defconst bluetooth-lib--apis
+  '(
+    :device "org.bluez.Device1"
+    :adapter "org.bluez.Adapter1"
+    :properties "org.freedesktop.DBus.Properties"
+    :agent-manager "org.bluez.AgentManager1"
+    :agent "org.bluez.Agent1"
+    :advert-monitor "org.bluez.AdvertisementMonitor1"
+    :advert-monitor-manager "org.bluez.AdvertisementMonitorManager1"
+    :battery "org.bluez.Battery1"
+    :battery-provider "org.bluez.BatteryProvider1"
+    :battery-provider-manager "org.bluez.BatteryProviderManager1"
+    :media "org.bluez.Media1"
+    :media-control "org.bluez.MediaControl1"
+    :media-endpoint "org.bluez.MediaEndpoint1"
+    :media-folder "org.bluez.MediaFolder1"
+    :media-item "org.bluez.MediaItem1"
+    :media-transport "org.bluez.MediaTransport1"
+    :media-player "org.bluez.MediaPlayer1"
+    :input "org.bluez.Input1"
+    :le-advert "org.bluez.LEAdvertisement1"
+    :le-advert-manager "org.bluez.LEAdvertisingManager1"
+    :network "org.bluez.Network1"
+    :network-server "org.bluez.NetworkServer1"
+    :profile "org.bluez.Profile1"
+    :profile-manager "org.bluez.ProfileManager1"
+    :gatt-service "org.bluez.GattService1"
+    :gatt-profile "org.bluez.GattProfile1"
+    :gatt-characteristic "org.bluez.GattCharacteristic1"
+    :gatt-descriptor "org.bluez.GattDescriptor1"
+    :gatt-manager "org.bluez.GattManager1")
+  "Bluez D-Bus APIs and their interface names.")
 
 (defun bluetooth-lib-interface (api)
   "Return Bluez interface name for API."
-  (alist-get api bluetooth-lib-interfaces))
-
-(defun bluetooth-lib--add-interface (interface api)
-  "Add new INTERFACE using API (a keyword) as its Lisp name."
-  (cl-pushnew (cons api interface) bluetooth-lib-interfaces))
+  (plist-get bluetooth-lib--apis api))
 
 (defun bluetooth-lib-path (&rest nodes)
   "Construct path from NODES, prepended by BLUETOOTH--ROOT."
@@ -144,7 +165,7 @@ The argument SERVICE specifies the bluetooth service,
 e.g. ‘bluetooth-service’, or is nil for adapter signals.  The
 argument PATH specifies the path to the D-Bus object holding the
 property.  API specifies the api interface to use, see
-‘bluetooth-lib-interfaces’.  HANDLER-FN is signal handler function taking the
+‘bluetooth-lib--apis’.  HANDLER-FN is signal handler function taking the
 arguments described in ‘dbus-unregister-object’."
   (dbus-register-signal bluetooth-bluez-bus
                         service
