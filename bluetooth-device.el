@@ -69,6 +69,12 @@ This structure holds all the device properties."
             "/"
             (bluetooth-device-id device))))
 
+(defun bluetooth-device-id-by-path (path)
+  "Return the device ID embedded in path or nil if there isn't one."
+  (when (string-match ".*\\(dev\\(_[[:alnum:]]\\{2\\}\\)\\{6\\}\\)"
+                      path)
+    (match-string 1 path)))
+
 (defun bluetooth-device--make-signal-handler (device &optional callback)
   "Make a signal handler for DEVICE, with CALLBACK.
 The optional callback function takes a ‘bluetooth-device’ as
