@@ -500,7 +500,7 @@ Calling this function will unpair device and host."
   (insert (propertize heading 'face
                       'bluetooth-info-heading)))
 
-(defun bluetooth--ins-line (attr text)
+(defun bluetooth-ins-line (attr text)
   "Insert attribute ATTR and corresponding TEXT in info view."
   (insert (propertize (format "%21s" attr)
                       'face
@@ -510,14 +510,14 @@ Calling this function will unpair device and host."
 (defun bluetooth--ins-attr (props attr)
   "Insert information on attribute ATTR in properties alist PROPS."
   (let ((value (cl-rest (assoc attr props))))
-    (bluetooth--ins-line attr
-                         (cond ((stringp value) value)
-                               ((numberp value)
-                                (number-to-string value))
-                               ((consp value)
-                                (mapconcat #'identity value ", "))
-                               ((null value) "no")
-                               (t "yes")))))
+    (bluetooth-ins-line attr
+                        (cond ((stringp value) value)
+                              ((numberp value)
+                               (number-to-string value))
+                              ((consp value)
+                               (mapconcat #'identity value ", "))
+                              ((null value) "no")
+                              (t "yes")))))
 
 (defun bluetooth--ins-classes (props)
   "Insert device classes from properties alist PROPS."
@@ -526,11 +526,11 @@ Calling this function will unpair device and host."
       (bluetooth--ins-heading "\nService and device classes\n")
       (--map (cl-destructuring-bind (type value) it
                (if (listp value)
-                   (bluetooth--ins-line type
-                                        (mapconcat #'identity
-                                                   value
-                                                   ", "))
-                 (bluetooth--ins-line type value)))
+                   (bluetooth-ins-line type
+                                       (mapconcat #'identity
+                                                  value
+                                                  ", "))
+                 (bluetooth-ins-line type value)))
              p-class))))
 
 (defun bluetooth--ins-services (props)
@@ -550,8 +550,8 @@ Calling this function will unpair device and host."
          (tx-power (cl-rest (assoc "TxPower" props)))
          (loss (when (and rssi tx-power) (- tx-power rssi))))
     (--zip-with (when other
-                  (bluetooth--ins-line (cl-first it)
-                                       (format (cl-second it) other)))
+                  (bluetooth-ins-line (cl-first it)
+                                      (format (cl-second it) other)))
                 '(("RSSI" "%4d dBm") ("Tx Power" "%4d dBm")
                   ("Path loss" "%4d dB"))
                 (list rssi tx-power loss))))
@@ -559,10 +559,10 @@ Calling this function will unpair device and host."
 (defun bluetooth--ins-mfc-info (props)
   "Insert manufacturer information from properties alist PROPS."
   (when-let (mf-info (cl-second (assoc "ManufacturerData" props)))
-    (bluetooth--ins-line "Manufacturer"
-                         (or (bluetooth-uuid-manufacturer-from-id
-                              (cl-first mf-info))
-                             "unknown"))))
+    (bluetooth-ins-line "Manufacturer"
+                        (or (bluetooth-uuid-manufacturer-from-id
+                             (cl-first mf-info))
+                            "unknown"))))
 
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
@@ -593,7 +593,7 @@ Calling this function will unpair device and host."
             '("Alias" "Address" "AddressType" "Powered" "Discoverable"
               "DiscoverableTimeout" "Pairable" "PairableTimeout"
               "Discovering" "Roles" "Modalias"))
-      (bluetooth--ins-line "Adapter" (bluetooth-lib-path adapter))
+      (bluetooth-ins-line "Adapter" (bluetooth-lib-path adapter))
       (funcall (-juxt #'bluetooth--ins-mfc-info
                       #'bluetooth--ins-classes
                       #'bluetooth--ins-services)
