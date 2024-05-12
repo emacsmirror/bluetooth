@@ -41,7 +41,8 @@
 This structure holds all the device properties."
   (id nil :read-only t)
   signal-handler
-  properties)
+  properties
+  insert-fn)
 
 (defun bluetooth-device-property (device property)
   "Return DEVICE's property PROPERTY."
@@ -114,7 +115,8 @@ handler after device properties have changed."
                  :device))
          (device (make-bluetooth-device :id dev-id
                                         :signal-handler nil
-                                        :properties props)))
+                                        :properties props
+                                        :insert-fn nil)))
     (when (bluetooth-device-property device "Paired")
       (setf (bluetooth-device-signal-handler device)
             (bluetooth-device--make-signal-handler device callback)))

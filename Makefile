@@ -8,7 +8,9 @@
 
 .POSIX:
 EMACS = emacs
-EL = bluetooth-device.el bluetooth-lib.el bluetooth-pa.el bluetooth-uuid.el bluetooth.el
+EL = bluetooth-device.el bluetooth-lib.el bluetooth-pa.el	\
+	bluetooth-uuid.el bluetooth.el bluetooth-plugin.el
+
 ELPA_EXT = dash
 LDFLAGS = -L ./dep/dash
 

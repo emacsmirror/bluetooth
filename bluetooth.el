@@ -580,6 +580,9 @@ Calling this function will unpair device and host."
                         #'bluetooth--ins-classes
                         #'bluetooth--ins-services)
                  props)
+        (bluetooth--ins-heading "\nOther device information\n")
+        (dolist (fn (bluetooth-device-insert-fn device))
+          (when fn (funcall fn device)))
         (special-mode)))))
 
 (defun bluetooth-show-adapter-info ()
