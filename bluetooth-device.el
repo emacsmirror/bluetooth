@@ -169,12 +169,24 @@ The cleanup will also unregister any installed signal handlers."
           (bluetooth-device--update-info adapter callback))
         (bluetooth-lib-query-adapters)))
 
-(defun bluetooth-device-map (fn)
-  "Map FN over all devices.
-The function takes the device id and a ‘bluetooth-device’ as
-arguments."
-  (maphash fn bluetooth-device--info))
+(defun bluetooth-device-implements-p (device api)
+  "Indicate whether DEVICE implements API."
+  (let ((obj (bluetooth-lib-get-objects (bluetooth-device-path device))))
+    (when (bluetooth-lib-match obj (bluetooth-lib-interface api))
+      t)))
 
+(defun bluetooth-device-map (fn &optional filter-fn &rest args)
+  "Map FN over all devices.
+The function FN takes the device id and a ‘bluetooth-device’ as
+arguments.
+The argument FILTER-FN, when supplied, must a predicate that takes a
+‘bluetooth-device’ as its first argument and ARGS as the rest."
+  (maphash (lambda (id dev)
+             (if filter-fn
+                 (when (apply filter-fn dev args)
+                   (funcall fn id dev))
+               (funcall fn id dev)))
+           bluetooth-device--info))
 
 (provide 'bluetooth-device)
 ;;; bluetooth-device.el ends here
