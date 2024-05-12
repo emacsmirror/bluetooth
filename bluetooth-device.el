@@ -20,7 +20,14 @@
 
 ;;; Commentary:
 
+;; This module keeps a store of known devices with information about their ID
+;; (e. g. dev_AB_CD_EF_GH_IJ_KL), their properties as key/value pairs and a
+;; signal handler for paired devices that keeps the properties up to date.
+;; The signal handler also calls a callback function whenever properties
+;; change.  This is used to keep the tabulated list view current.
 ;;
+;; If application code wants to be notified about changed properties, a signal
+;; handler can be installed using ‘bluetooth-lib-register-props-signal’.
 
 ;;; Code:
 
