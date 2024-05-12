@@ -233,10 +233,9 @@ Only adapter properties are considered.  If an adapter property changes,
 update the status display accordingly."
   (when (string= interface (bluetooth-lib-interface :adapter))
     (mapc (lambda (elt)
-            (ignore-errors
-              (cl-destructuring-bind (prop (value)) elt
-                (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
-                  (setf (bluetooth-property-active-p property) value)))))
+            (cl-destructuring-bind (prop (value)) elt
+              (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
+                (setf (bluetooth-property-active-p property) value))))
           data)
     (force-mode-line-update)))
 
