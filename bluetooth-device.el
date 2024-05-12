@@ -69,7 +69,6 @@ This structure holds all the device properties."
             "/"
             (bluetooth-device-id device))))
 
-;; TODO use hooks so multiple callbacks can be used
 (defun bluetooth-device--make-signal-handler (device &optional callback)
   "Make a signal handler for DEVICE, with CALLBACK.
 The optional callback function takes a ‘bluetooth-device’ as
@@ -116,7 +115,6 @@ handler after device properties have changed."
             (bluetooth-device--make-signal-handler device callback)))
     (puthash dev-id device bluetooth-device--info)))
 
-;; TODO use hooks so multiple callbacks can be used
 (defun bluetooth-device--update (dev-id device &optional callback)
   "Update device info for id DEV-ID with data in DEVICE and CALLBACK.
 The CALLBACK function is installed only if no signal handler was
