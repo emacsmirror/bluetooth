@@ -160,13 +160,20 @@ The method is called synchronously."
   (bluetooth-lib--call-method path api #'dbus-set-property property arg))
 
 (defun bluetooth-lib-register-props-signal (service path api handler-fn)
-  "Register signal handler to be notified when properties change.
+  "Register a signal handler to be notified when properties change.
 The argument SERVICE specifies the bluetooth service,
 e.g. ‘bluetooth-service’, or is nil for adapter signals.  The
 argument PATH specifies the path to the D-Bus object holding the
 property.  API specifies the api interface to use, see
-‘bluetooth-lib--apis’.  HANDLER-FN is signal handler function taking the
-arguments described in ‘dbus-unregister-object’."
+‘bluetooth-lib--apis’.
+
+HANDLER-FN is signal handler function taking three arguments:
+ INTERFACE-NAME: name of the interface with property changes
+ CHANGED-PROPERTIES: an alist of changed properties
+ INVALIDATED-PROPERTIES: an alist of changed properties without values.
+
+The return value is a D-Bus object that should be unregistered
+with ‘dbus-unregister-object’ when not needed anymore."
   (dbus-register-signal bluetooth-bluez-bus
                         service
                         path
