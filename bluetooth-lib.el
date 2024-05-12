@@ -113,10 +113,15 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
                                   (bluetooth-lib-path adapter)))
 
 (defun bluetooth-lib-query-properties (path api)
-  "Return all properties of SERVICE on PATH using API."
+  "Return all properties of object on PATH using API."
   (dbus-get-all-properties bluetooth-bluez-bus bluetooth-service
                            path
                            (bluetooth-lib-interface api)))
+
+(defun bluetooth-lib-query-property (property path api)
+  "Return the value of PROPERTY of object on PATH using API."
+  (let ((props (bluetooth-lib-query-properties path api)))
+    (alist-get property props nil nil #'equal)))
 
 (defun bluetooth-lib-adapter-properties (adapter)
   "Return the properties of bluetooth ADAPTER.
