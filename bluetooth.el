@@ -161,11 +161,12 @@ as they are used to gather the information from Bluez.")
 
 (defun bluetooth--print-list (&optional _device)
   "Print the device list."
-  (with-current-buffer bluetooth-buffer-name
-    (tabulated-list-print t)
-    (and (fboundp 'hl-line-highlight)
-         (bound-and-true-p hl-line-mode)
-         (hl-line-highlight))))
+  (when (get-buffer bluetooth-buffer-name)
+    (with-current-buffer bluetooth-buffer-name
+      (tabulated-list-print t)
+      (and (fboundp 'hl-line-highlight)
+           (bound-and-true-p hl-line-mode)
+           (hl-line-highlight)))))
 
 (defun bluetooth--update-with-callback ()
   (bluetooth-device-update-all #'bluetooth--print-list))
