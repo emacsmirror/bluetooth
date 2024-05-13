@@ -607,6 +607,14 @@ Calling this function will unpair device and host."
 ;;;; mode entry command
 
 ;;;###autoload
+(defun bluetooth-init ()
+  "Initialize bluetooth mode."
+  ;; make sure D-Bus is (made) available
+  (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
+  (bluetooth-device-init #'bluetooth--print-list)
+  (bluetooth-pa-register-agent))
+
+;;;###autoload
 (defun bluetooth-list-devices ()
   "Display a list of Bluetooth devices.
 This function starts Bluetooth mode which offers an interface
