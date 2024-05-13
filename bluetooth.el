@@ -621,30 +621,30 @@ This function starts Bluetooth mode which offers an interface
 offering device management functions, e.g. pairing, connecting,
 scanning the bus, displaying device info etc."
   (interactive)
-  ;; make sure D-Bus is (made) available
-  (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
-  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-    (unless (derived-mode-p 'bluetooth-mode)
-      (erase-buffer)
-      (bluetooth-device-init #'bluetooth--print-list)
-      (bluetooth-mode)
-      (bluetooth-pa-register-agent)
-      (cl-pushnew bluetooth--mode-info mode-line-process)
-      (add-hook 'kill-buffer-hook #'bluetooth--cleanup 0 t)
-      (setq imenu-create-index-function #'bluetooth--create-imenu-index)
-      (bluetooth--initialize-mode-info)
-      (setq bluetooth--update-timer
-            (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
-                                                "Discovering")
-                (run-at-time nil bluetooth-update-interval
-                             #'bluetooth--update-print)
-              nil))
-      (setq bluetooth--adapter-signal
-            (bluetooth-lib-register-props-signal nil
-                                                 (bluetooth-lib-path
-                                                  (cl-first (bluetooth-lib-query-adapters)))
-                                                 :adapter
-                                                 #'bluetooth--handle-prop-change)))))
+  (if (get-buffer bluetooth-buffer-name)
+      (pop-to-buffer bluetooth-buffer-name)
+    (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
+      (unless (derived-mode-p 'bluetooth-mode)
+        (bluetooth-init)
+        (erase-buffer)
+        (bluetooth-mode)
+        (cl-pushnew bluetooth--mode-info mode-line-process)
+        ;; TODO have an extra unload command instead
+        (add-hook 'kill-buffer-hook #'bluetooth--cleanup 0 t)
+        (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+        (bluetooth--initialize-mode-info)
+        (setq bluetooth--update-timer
+              (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
+                                                  "Discovering")
+                  (run-at-time nil bluetooth-update-interval
+                               #'bluetooth--update-print)
+                nil))
+        (setq bluetooth--adapter-signal
+              (bluetooth-lib-register-props-signal nil
+                                                   (bluetooth-lib-path
+                                                    (cl-first (bluetooth-lib-query-adapters)))
+                                                   :adapter
+                                                   #'bluetooth--handle-prop-change))))))
 
 (provide 'bluetooth)
 
