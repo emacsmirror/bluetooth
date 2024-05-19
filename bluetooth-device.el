@@ -158,8 +158,10 @@ The cleanup will also unregister any installed signal handlers."
           (hash-table-keys bluetooth-device--info))
     (setq bluetooth-device--info nil)))
 
-(defun bluetooth-device--update-info (adapter &optional callback)
-  "Update the device info for ADAPTER, installing CALLBACK."
+(defun bluetooth-device--update-devices (adapter &optional callback)
+  "Update the device info for ADAPTER, installing CALLBACK.
+This function removes devices that have disappeared and adds
+devices that have newly connected."
   (let ((queried-devices (bluetooth-lib-query-devices adapter)))
     (mapc (lambda (dev-id)
             (bluetooth-device--remove dev-id))
@@ -174,7 +176,7 @@ The cleanup will also unregister any installed signal handlers."
 (defun bluetooth-device-update-all (&optional callback)
   "Update the device info for all adapters, installing CALLBACK."
   (mapc (lambda (adapter)
-          (bluetooth-device--update-info adapter callback))
+          (bluetooth-device--update-devices adapter callback))
         (bluetooth-lib-query-adapters)))
 
 (defun bluetooth-device-implements-p (device api)
