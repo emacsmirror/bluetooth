@@ -251,9 +251,6 @@
              (#xf . "Personal mobility device"))))
   "Bluetooth health minor classes.")
 
-;; (define-obsolete-variable-alias 'bluetooth--service-class-uuid-alist
-;;   'bluetooth-uuid--service-class-uuids "0.2")
-
 (defconst bluetooth-uuid--service-class-uuids
   #s(hash-table
      size 120 data
@@ -350,9 +347,6 @@
       #x1402 ("HDP Sink" "Health Device Profile (HDP)")))
   "Bluetooth service class UUIDs.")
 
-;; (define-obsolete-variable-alias 'bluetooth--gatt-service-uuid-alist
-;;   'bluetooth-uuid--gatt-service-uuids "0.2")
-
 ;; Last updated: 01. Jan 2022
 (defconst bluetooth-uuid--gatt-service-uuids
   #s(hash-table
@@ -420,9 +414,6 @@
       #x1853 ("Common Audio Service*")))
   "Bluetooth GATT service UUIDs.")
 
-;; (define-obsolete-variable-alias 'bluetooth--sdo-uuid-alist
-;;   'bluetooth-uuid--sdo-uuids "0.2")
-
 (defconst bluetooth-uuid--sdo-uuids
   #s(hash-table
      size 10 data
@@ -441,9 +432,6 @@
 
 ;;;; Bluetooth member UUIDs
 ;; Last updated: 01. Jan 2022
-
-;; (define-obsolete-variable-alias 'bluetooth--member-uuid-alist
-;;   'bluetooth-uuid--member-uuids "0.2")
 
 (defconst bluetooth-uuid--member-uuids
   #s(hash-table
@@ -968,8 +956,6 @@
 
 
 ;;;; service and class parsing code
-
-;; (define-obsolete-variable-alias 'bluetooth--uuid-alists 'bluetooth-uuid--uuids "0.2")
 
 (defconst bluetooth-uuid--uuids
   `((#xfff0 . ,bluetooth-uuid--sdo-uuids)
