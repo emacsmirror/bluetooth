@@ -34,6 +34,9 @@
 (require 'cl-lib)
 (require 'bluetooth-lib)
 
+(declare-function bluetooth-plugin-dev-remove "bluetooth-device")
+(declare-function bluetooth-plugin-dev-add "bluetooth-device")
+
 (defvar bluetooth-device--info nil "Device info obtained from Bluez.")
 
 (cl-defstruct bluetooth-device
@@ -41,8 +44,7 @@
 This structure holds all the device properties."
   (id nil :read-only t)
   signal-handler
-  properties
-  insert-fn)
+  properties)
 
 (defun bluetooth-device-property (device property)
   "Return DEVICE's property PROPERTY."
@@ -83,14 +85,17 @@ argument and is called after the device properties have been
 updated."
   (let ((adapter (bluetooth-device-property device "Adapter"))
         (dev-id (bluetooth-device-id device)))
-    (cl-flet ((handler
-                (_interface changed-props _invalidated-props)
+    (cl-flet ((handler (_interface changed-props &rest _)
                 (let ((device (bluetooth-device dev-id)))
                   (mapc (lambda (prop)
                           (cl-destructuring-bind (key (value)) prop
                             (setf (bluetooth-device-property device key)
-                                  value)))
-                        (append changed-props))
+                                  value)
+                            (when (string= "Connected" key)
+                              (if value
+                                  (bluetooth-plugin-dev-add device)
+                                (bluetooth-plugin-dev-remove device)))))
+                        changed-props)
                   (when callback (funcall callback device)))))
       (bluetooth-lib-register-props-signal bluetooth-service
                                            (concat adapter "/" dev-id)
@@ -103,7 +108,8 @@ This also unregisters any signal handlers."
   (let ((device (bluetooth-device dev-id)))
     (when (bluetooth-device-signal-handler device)
       (dbus-unregister-object (bluetooth-device-signal-handler device))
-      (setf (bluetooth-device-signal-handler device) nil)))
+      (setf (bluetooth-device-signal-handler device) nil)
+      (bluetooth-plugin-dev-remove device)))
   (remhash dev-id bluetooth-device--info))
 
 (defun bluetooth-device--add (dev-id adapter &optional callback)
@@ -115,12 +121,12 @@ handler after device properties have changed."
                  :device))
          (device (make-bluetooth-device :id dev-id
                                         :signal-handler nil
-                                        :properties props
-                                        :insert-fn nil)))
+                                        :properties props)))
     (when (bluetooth-device-property device "Paired")
       (setf (bluetooth-device-signal-handler device)
-            (bluetooth-device--make-signal-handler device callback)))
-    (puthash dev-id device bluetooth-device--info)))
+            (bluetooth-device--make-signal-handler device callback))
+      (bluetooth-plugin-dev-add device))
+    (setf (gethash dev-id bluetooth-device--info) device)))
 
 (defun bluetooth-device--update (dev-id device &optional callback)
   "Update device info for id DEV-ID with data in DEVICE and CALLBACK.
@@ -147,9 +153,10 @@ Call this function only once, usually at mode initialization."
 (defun bluetooth-device-cleanup ()
   "Cleanup the internal device table, removing every known device.
 The cleanup will also unregister any installed signal handlers."
-  (mapc #'bluetooth-device--remove
-        (hash-table-keys bluetooth-device--info))
-  (setq bluetooth-device--info nil))
+  (when (hash-table-p bluetooth-device--info)
+    (mapc #'bluetooth-device--remove
+          (hash-table-keys bluetooth-device--info))
+    (setq bluetooth-device--info nil)))
 
 (defun bluetooth-device--update-info (adapter &optional callback)
   "Update the device info for ADAPTER, installing CALLBACK."

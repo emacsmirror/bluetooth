@@ -24,21 +24,48 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
 
-(defvar bluetooth-plugin--objects nil)
+(declare-function bluetooth-battery-init "bluetooth-battery")
 
-(defun bluetooth-plugin-register (api new-fn &optional path insert-fn _transient)
-  "Register a plugin for object on PATH for API.
-If PATH is nil, NEW-FN will be called for every object
-implementing API, either when the device is already connected, or
-when a suitable new device connects.  Otherwise it is called only
-once for the object on PATH.
+(defgroup bluetooth-plugin nil
+  "Bluetooth plugins."
+  :group 'bluetooth)
 
-The optional function INSERT-FN is called when device information
-is printed from the device view.  It should call
-‘bluetooth-ins-line’ to insert its information.
+(defcustom bluetooth-plugin-autoload (list #'bluetooth-battery-init)
+  "List of init functions of auto-loaded plugins.
+The init functions are called when the bluetooth plugin interface
+is initialized."
+  :type '(repeat function))
+
+(defvar bluetooth-plugin--objects nil
+  "The hash table of registered bluetooth plugins.  The keys are API
+names.  Each value of this hash table is a plist with the
+following keys and values:
+
+- new-fn: the function to call when a new device offering the api
+  for which the plugin registered connects,
+- info-fn: a function called from ‘bluetooth-show-device-info’
+  to show device information,
+- dev-ids: a list of device IDs that the plugin handles.")
+
+(defun bluetooth-plugin-register (api new-fn &optional info-fn
+                                      cleanup-fn remove-fn _transient)
+  "Register a plugin for API.
+NEW-FN will be called for every object implementing API, either
+when the device is already connected, or when a suitable new
+device connects.
+
+The optional function INFO-FN is called when device information
+is printed from the device view.  It takes a ‘bluetooth-device’
+as argument and should call ‘bluetooth-ins-line’ to insert its
+information.
+
+The optional function REMOVE-FN is called when a device is
+removed (unpaired) or disconnects.  It takes a ‘bluetooth-device’
+as argument.
 
 The optional TRANSIENT can be provided as a device menu to
 interact with the device.
@@ -49,39 +76,82 @@ is called."
   (unless (hash-table-p bluetooth-plugin--objects)
     (setf bluetooth-plugin--objects (make-hash-table :test #'eq)))
   (if (gethash api bluetooth-plugin--objects)
-      (error "A bluetooth plugin is already registered for interface %s"
-             (bluetooth-lib-interface api))
+      (message "A bluetooth plugin is already registered for interface %s"
+               (bluetooth-lib-interface api))
     (setf (plist-get (gethash api bluetooth-plugin--objects) :new-fn)
           new-fn)
-    (setf (plist-get (gethash api bluetooth-plugin--objects) :insert-fn)
-          insert-fn)
-    (cl-flet ((install (path)
-                (let ((dev-id (bluetooth-device-id-by-path path)))
-                  (push dev-id
-                        (plist-get (gethash api
-                                            bluetooth-plugin--objects)
-                                   :dev-ids))
-                  (when insert-fn
-                    (cl-pushnew insert-fn
-                                (bluetooth-device-insert-fn
-                                 (bluetooth-device dev-id)))))))
-      (if (stringp path)
-          (install path)
-        (when-let (paths (mapcar #'car
-                                 (bluetooth-lib-match (bluetooth-lib-get-objects bluetooth-root)
-                                                      (bluetooth-lib-interface api))))
-          (mapc #'install paths)))))
+    (cl-mapc (lambda (key fn)
+               (when fn
+                 (setf (plist-get (gethash api bluetooth-plugin--objects) key)
+                       fn)))
+             (list :info-fn :cleanup-fn :remove-fn)
+             (list info-fn cleanup-fn remove-fn))
+    ;; TODO add transient
+    )
   nil)
 
 (defun bluetooth-plugin-unregister (api)
   "Unregister the plugin for API."
-  (dolist (id (plist-get (gethash api bluetooth-plugin--objects) :dev-ids))
-    (let ((device (bluetooth-device id)))
-      (setf  (bluetooth-device-insert-fn device)
-             (cl-remove (plist-get (gethash api bluetooth-plugin--objects)
-                                   :insert-fn)
-                        (bluetooth-device-insert-fn device)))))
-  (remhash api bluetooth-plugin--objects))
+  (when-let (entry (and (hash-table-p bluetooth-plugin--objects)
+                        (gethash api bluetooth-plugin--objects)))
+    (funcall (plist-get entry :cleanup-fn))
+    (remhash api bluetooth-plugin--objects)))
+
+(defun bluetooth-plugin-unregister-all ()
+  "Unregister all plugins."
+  (when (hash-table-p bluetooth-plugin--objects)
+    (maphash (lambda (key _value)
+               (bluetooth-plugin-unregister key))
+             bluetooth-plugin--objects)))
+
+(defun bluetooth-plugin-dev-remove (device)
+  "Remove DEVICE from the handled devices."
+  (when (hash-table-p bluetooth-plugin--objects)
+    (let ((dev-id (bluetooth-device-id device)))
+      (maphash (lambda (_api entry)
+                 (when (member dev-id (plist-get entry :dev-ids))
+                   (when-let ((remove-fn (plist-get entry :remove-fn)))
+                     (funcall remove-fn device))
+                   (setf (plist-get entry :dev-ids)
+                         (cl-remove dev-id (plist-get entry :dev-ids)))))
+               bluetooth-plugin--objects))))
+
+(defun bluetooth-plugin-dev-add (device)
+  "Add DEVICE to the handled devices.
+Obtain a list of interfaces provided by DEVICE and notify plugins registered
+for these interfaces of the newly added device."
+  (when (hash-table-p bluetooth-plugin--objects)
+    (cl-labels ((install (path api)
+                  (let ((dev-id (bluetooth-device-id-by-path path)))
+                    (push dev-id
+                          (plist-get (gethash api bluetooth-plugin--objects)
+                                     :dev-ids))))
+                (notify (api entry)
+                  (let ((matches (bluetooth-lib-match (bluetooth-lib-get-objects
+                                                     (bluetooth-device-path device))
+                                                    (bluetooth-lib-interface api))))
+                    (dolist (match matches)
+                      (when-let ((new-fn (plist-get entry :new-fn)))
+                        (install (car match) api)
+                        (funcall new-fn (car match)))))))
+      (maphash #'notify bluetooth-plugin--objects))))
+
+(defun bluetooth-plugin-insert-infos (device)
+  (when (hash-table-p bluetooth-plugin--objects)
+    (when-let ((dev-id (and (bluetooth-device-property device "Connected")
+                            (bluetooth-device-id device))))
+      (maphash (lambda (_api entry)
+                 (when (member dev-id (plist-get entry :dev-ids))
+                   (funcall (plist-get entry :info-fn) device)))
+               bluetooth-plugin--objects))))
+
+(defun bluetooth-plugin-init ()
+  "Initialize the bluetooth plugin interface.
+Initialize all the auto-load plugins configured in
+‘bluetooth-plugin-autoload’.  The init functions should call
+‘bluetooth-plugin-register’."
+  (dolist (init-fn bluetooth-plugin-autoload)
+    (and (fboundp init-fn) (funcall init-fn))))
 
 (provide 'bluetooth-plugin)
 ;;; bluetooth-plugin.el ends here
