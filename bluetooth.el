@@ -46,6 +46,7 @@
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
 (require 'bluetooth-uuid)
+(require 'bluetooth-plugin)
 
 
 ;;;; customization
@@ -86,6 +87,8 @@
   "Mode info display.")
 
 (put 'bluetooth--mode-info 'risky-local-variable t)
+
+(defvar bluetooth--initialized nil)
 
 (cl-defstruct bluetooth-property
   "Bluetooth state information for the mode line.
@@ -144,6 +147,7 @@ as they are used to gather the information from Bluez.")
 ;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
   "Provide the list entries for the tabulated view."
+  (bluetooth--barf-if-uninitialized)
   (let (dev-list)
     (bluetooth-device-map
      (lambda (dev-id device)
@@ -169,6 +173,7 @@ as they are used to gather the information from Bluez.")
            (hl-line-highlight)))))
 
 (defun bluetooth--update-with-callback ()
+  (bluetooth--barf-if-uninitialized)
   (bluetooth-device-update-all #'bluetooth--print-list))
 
 (defun bluetooth--update-print ()
@@ -200,22 +205,24 @@ This function only uses the first adapter reported by Bluez."
 
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
-  ;; This function is registered as a kill-buffer-hook, so we don't
-  ;; want any errors to get in the way of killing the buffer
-  (ignore-errors
-    (bluetooth-pa-unregister-agent)
-    (dbus-unregister-object bluetooth--adapter-signal)
-    (bluetooth-device-cleanup)
-    (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
+  (dbus-unregister-object bluetooth--adapter-signal)
+  (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
+  (when bluetooth--update-timer
     (cancel-timer bluetooth--update-timer)
     (setq bluetooth--update-timer nil)))
 
+;; TODO test!
 (defun bluetooth-unload-function ()
   "Clean up when the bluetooth feature is unloaded."
+  (bluetooth-shutdown)
   (when (buffer-live-p (get-buffer bluetooth-buffer-name))
-    (bluetooth--cleanup)
+    (bluetooth-shutdown)
     (kill-buffer bluetooth-buffer-name))
   nil)
+
+(defun bluetooth--barf-if-uninitialized ()
+  (unless bluetooth--initialized
+	(user-error "Bluetooth is not initialized.  Try ‘bluetooth-list-devices’.")))
 
 ;; This function is called from Emacs's mode-line update code
 ;; and must not contain any calls to D-Bus functions.
@@ -253,6 +260,7 @@ update the status display accordingly."
 
 (defun bluetooth--choose-uuid ()
   "Ask for a UUID and return it in a form suitable for ‘interactive’."
+  (bluetooth--barf-if-uninitialized)
   (if current-prefix-arg
       (let* ((device (bluetooth-device (tabulated-list-get-id)))
              (uuids (bluetooth-uuid-interpret
@@ -298,12 +306,14 @@ profiles."
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
   (interactive)
+  (bluetooth--barf-if-uninitialized)
   (let ((prefix-arg (list 4)))
     (command-execute #'bluetooth-connect)))
 
 (defun bluetooth-disconnect-profile ()
   "Ask for a Bluetooth profile and disconnect the device at point from it."
   (interactive)
+  (bluetooth--barf-if-uninitialized)
   (let ((prefix-arg (list 4)))
     (command-execute #'bluetooth-disconnect)))
 
@@ -316,6 +326,7 @@ implemented by BODY."
     (cl-with-gensyms (gmethod gapi)
       `(defun ,(intern name) () ,docstring
               (interactive)
+              (bluetooth--barf-if-uninitialized)
               (let ((,gmethod ,method)
                     (,gapi ,api))
                 (bluetooth-lib-dbus-method (bluetooth--make-path ,gapi)
@@ -347,6 +358,7 @@ The function will have DOCSTRING as its documentation."
     (cl-with-gensyms (gproperty gapi)
       `(defun ,(intern name) () ,docstring
               (interactive)
+              (bluetooth--barf-if-uninitialized)
               (let ((,gproperty ,property)
                     (,gapi ,api))
                 (bluetooth-lib-dbus-toggle (bluetooth--make-path ,gapi)
@@ -367,12 +379,14 @@ The function will have DOCSTRING as its documentation."
 (defun bluetooth-set-alias (name)
   "Set alias of Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): ")
+  (bluetooth--barf-if-uninitialized)
   (bluetooth-lib-dbus-set (bluetooth--make-path :device) "Alias" name :device))
 
 (defun bluetooth-remove-device (&optional dev-id)
   "Remove Bluetooth device at point or specified by DEV-ID.
 Calling this function will unpair device and host."
   (interactive)
+  (bluetooth--barf-if-uninitialized)
   (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
     (bluetooth-lib-dbus-method (bluetooth-device-property device "Adapter")
                                "RemoveDevice"
@@ -411,6 +425,7 @@ Calling this function will unpair device and host."
     (define-key map [?r] #'bluetooth-start-discovery)
     (define-key map [?R] #'bluetooth-stop-discovery)
     (define-key map [?s] #'bluetooth-toggle-powered)
+    (define-key map [?S] #'bluetooth-shutdown)
     (define-key map [?P] #'bluetooth-pair)
     (define-key map [?D] #'bluetooth-toggle-discoverable)
     (define-key map [?x] #'bluetooth-toggle-pairable)
@@ -443,6 +458,9 @@ Calling this function will unpair device and host."
     (define-key map [menu-bar bluetooth show-adapter-info]
                 '(menu-item "Show adapter info" bluetooth-show-adapter-info
                             :help "Show bluetooth adapter info"))
+    (define-key map [menu-bar bluetooth shutdown]
+                '(menu-item "Shutdown" bluetooth-shutdown
+                            :help "Shutdown bluetooth mode"))
 
     (define-key map [menu-bar bluetooth device show-info]
                 '(menu-item "Show device info" bluetooth-show-device-info
@@ -568,6 +586,7 @@ Calling this function will unpair device and host."
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
   (interactive)
+  (bluetooth--barf-if-uninitialized)
   (when-let (device (bluetooth-device (tabulated-list-get-id)))
     (with-current-buffer-window bluetooth-info-buffer-name nil nil
       (let ((props (bluetooth-device-properties device)))
@@ -589,6 +608,7 @@ Calling this function will unpair device and host."
 (defun bluetooth-show-adapter-info ()
   "Show detailed information on the (first) bluetooth adapter."
   (interactive)
+  (bluetooth--barf-if-uninitialized)
   (let* ((adapter (cl-first (bluetooth-lib-query-adapters)))
          (props (bluetooth-lib-adapter-properties adapter)))
     (with-current-buffer-window bluetooth-info-buffer-name nil nil
@@ -612,8 +632,10 @@ Calling this function will unpair device and host."
   "Initialize bluetooth mode."
   ;; make sure D-Bus is (made) available
   (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
+  (bluetooth-pa-register-agent)
+  (bluetooth-plugin-init)
   (bluetooth-device-init #'bluetooth--print-list)
-  (bluetooth-pa-register-agent))
+  (setf bluetooth--initialized t))
 
 ;;;###autoload
 (defun bluetooth-list-devices ()
@@ -622,30 +644,45 @@ This function starts Bluetooth mode which offers an interface
 offering device management functions, e.g. pairing, connecting,
 scanning the bus, displaying device info etc."
   (interactive)
-  (if (get-buffer bluetooth-buffer-name)
-      (pop-to-buffer bluetooth-buffer-name)
-    (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
-      (unless (derived-mode-p 'bluetooth-mode)
-        (bluetooth-init)
-        (erase-buffer)
-        (bluetooth-mode)
-        (cl-pushnew bluetooth--mode-info mode-line-process)
-        ;; TODO have an extra unload command instead
-        (add-hook 'kill-buffer-hook #'bluetooth--cleanup 0 t)
-        (setq imenu-create-index-function #'bluetooth--create-imenu-index)
-        (bluetooth--initialize-mode-info)
-        (setq bluetooth--update-timer
-              (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
-                                                  "Discovering")
-                  (run-at-time nil bluetooth-update-interval
-                               #'bluetooth--update-print)
-                nil))
-        (setq bluetooth--adapter-signal
-              (bluetooth-lib-register-props-signal nil
-                                                   (bluetooth-lib-path
-                                                    (cl-first (bluetooth-lib-query-adapters)))
-                                                   :adapter
-                                                   #'bluetooth--handle-prop-change))))))
+  (unless bluetooth--initialized
+    (bluetooth-init))
+  (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
+    (unless (derived-mode-p 'bluetooth-mode)
+      (erase-buffer)
+      (bluetooth-mode)
+      (cl-pushnew bluetooth--mode-info mode-line-process)
+      (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+      (bluetooth--initialize-mode-info)
+      (setq bluetooth--update-timer
+            (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
+                                                "Discovering")
+                (run-at-time nil bluetooth-update-interval
+                             #'bluetooth--update-print)
+              nil))
+      (setq bluetooth--adapter-signal
+            (bluetooth-lib-register-props-signal nil
+                                                 (bluetooth-lib-path
+                                                  (cl-first (bluetooth-lib-query-adapters)))
+                                                 :adapter
+                                                 #'bluetooth--handle-prop-change)))))
+
+(defun bluetooth-shutdown (&optional arg)
+  "Shutdown Bluetooth mode.
+This command will unregister any agents and plugins and free
+D-Bus ressources.  If called interactively, it will ask for
+confirmation before shutting down."
+  (interactive "p")
+  (let ((do-shutdown (if (and arg
+                              (not (y-or-n-p "Shutdown Bluetooth mode?")))
+                         nil
+                       t)))
+    (when do-shutdown
+      (unwind-protect
+          (progn (bluetooth-plugin-unregister-all)
+                 (bluetooth-pa-unregister-agent)
+                 (bluetooth-device-cleanup)
+                 (bluetooth--cleanup))
+        (setf bluetooth--initialized nil)))))
 
 (provide 'bluetooth)
 
