@@ -966,14 +966,11 @@
 
 (defun bluetooth-uuid-parse-service-class-uuid (uuid)
   "Parse UUID and return short and long service class names."
-  (let ((uuid-re (rx (seq bos (submatch (= 8 xdigit))
-                          "-" (eval bluetooth-uuid--base-uuid) eos))))
-    (when (string-match uuid-re uuid)
-      (let ((service-id (string-to-number (match-string 1 uuid) 16)))
-        (or (gethash service-id
-                     (cl-rest (--first (>= service-id (cl-first it))
-                                       bluetooth-uuid--uuids)))
-            (list  (format "#x%08x" service-id) "unknown"))))))
+  (when-let ((service-id (bluetooth-uuid-strip uuid)))
+    (or (gethash service-id
+                 (cl-rest (--first (>= service-id (cl-first it))
+                                   bluetooth-uuid--uuids)))
+        (list  (format "#x%08x" service-id) "unknown"))))
 
 (defun bluetooth-uuid-parse-class (class)
   "Parse the CLASS property of a Bluetooth device."
@@ -3865,6 +3862,17 @@ form by a call to ‘bluetooth-device-properties’."
                         (list id))))
           (push (list id desc) uuid-alist)))
       (nreverse uuid-alist))))
+
+(defun bluetooth-uuid-append (service-id)
+  "Append SERVICE-ID to the Bluetooth base UUID."
+  (format "%08x-%s" service-id bluetooth-uuid--base-uuid))
+
+(defun bluetooth-uuid-strip (uuid)
+  "Strip the service-id from the Bluetooth base UUID."
+  (let ((uuid-re (rx (seq bos (submatch (** 1 8 xdigit))
+                          "-" (eval bluetooth-uuid--base-uuid) eos))))
+    (when (string-match uuid-re uuid)
+      (string-to-number (match-string 1 uuid) 16))))
 
 (provide 'bluetooth-uuid)
 ;;; bluetooth-uuid.el ends here
