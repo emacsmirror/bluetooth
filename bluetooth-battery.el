@@ -29,27 +29,43 @@
 (require 'bluetooth-device)
 (require 'bluetooth-plugin)
 
+(defgroup bluetooth-battery nil
+  "Bluetooth battery plugin."
+  :group 'bluetooth)
+
 (defcustom bluetooth-battery-warning-level 40
   "Level below which a low battery warning is issued."
-  :type '(natnum)
-  :group 'bluetooth)
+  :type '(natnum))
+
+(defcustom bluetooth-battery-display-warning t
+  "Whether a low-battery warning should be displayed."
+  :type '(boolean))
 
 (defvar bluetooth-battery--signals nil)
 
-(defun bluetooth-battery--ins-info (device)
+(defun bluetooth-battery--info (device)
   "Insert battery info for DEVICE into buffer at point."
-  (bluetooth-ins-line "Battery level"
-                      (number-to-string (bluetooth-battery-level device))))
+  (let ((level (bluetooth-battery-level device)))
+    (when (numberp level)
+      (bluetooth-ins-line "Battery level" (number-to-string level)))))
 
+;; TODO test!
 (defun bluetooth-battery--make-handler (path)
   "Make a signal handler for object at PATH to indicate battery level.
 If the battery level gets low, a message to that effect will be printed."
-  (lambda (interface changed-props &rest _)
+  (lambda (_interface changed-props &rest _)
     (let* ((device (bluetooth-device (bluetooth-device-id-by-path path)))
            (alias (bluetooth-device-property device "Alias"))
            (level (alist-get "Percentage" changed-props nil nil #'equal)))
-      (message "Battery level of %s: %d" alias level))))
+      (when (and (numberp level)
+                 bluetooth-battery-display-warning
+                 (<= level bluetooth-battery-warning-level))
+        (delay-warning 'bluetooth-battery
+                       (format "Battery level of %s is low (%d %%)"
+                               alias level))))))
 
+;; TODO add dev-id or something so it can be cleaned up later
+;; dev-id can be obtained from path
 (defun bluetooth-battery--new (path)
   "Notify bluetooth-battery about new object at PATH."
   (push (bluetooth-lib-register-props-signal bluetooth-service
@@ -58,6 +74,10 @@ If the battery level gets low, a message to that effect will be printed."
                                              (bluetooth-battery--make-handler
                                               path))
         bluetooth-battery--signals))
+
+(defun bluetooth-battery--cleanup ()
+  "Clean up the bluetooth battery plugin."
+  (mapc #'dbus-unregister-object bluetooth-battery--signals))
 
 (defun bluetooth-battery-level (device)
   "Return the battery level of DEVICE."
@@ -84,13 +104,8 @@ If the battery level gets low, a message to that effect will be printed."
   ;; it will likely call ‘bluetooth-battery--new’ right away
   (bluetooth-plugin-register :battery
                              #'bluetooth-battery--new
-                             nil
-                             #'bluetooth-battery--ins-info))
-
-(defun bluetooth-battery-cleanup ()
-  "Clean up the bluetooth battery plugin."
-  (mapc #'dbus-unregister-object bluetooth-battery--signals)
-  (bluetooth-plugin-unregister :battery))
+                             #'bluetooth-battery--info
+                             #'bluetooth-battery--cleanup))
 
 (provide 'bluetooth-battery)
 ;;; bluetooth-battery.el ends here
