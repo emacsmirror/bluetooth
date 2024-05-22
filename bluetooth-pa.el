@@ -137,28 +137,31 @@
 ;; This procedure registers the pairing agent.
 (defun bluetooth-pa-register-agent ()
   "Register as a pairing agent."
-  (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
-                   "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
-                   "RequestAuthorization" "AuthorizeService" "Cancel")))
-    (setq bluetooth-pa--method-objects
-          (cl-loop for method in methods
-                   for fname = (bluetooth-lib-make-function-name method "-pa-")
-                   collect (dbus-register-method bluetooth-bluez-bus
-                                                 dbus-service-emacs
-                                                 bluetooth-pa-own-path
-                                                 (bluetooth-lib-interface :agent)
-                                                 method (intern fname) t)))
-    (dbus-register-service :session dbus-service-emacs)
-    (bluetooth-lib-dbus-sync-method bluetooth-root "RegisterAgent"
-                                :agent-manager
-                                :object-path bluetooth-pa-own-path "KeyboardDisplay")))
+  (unless bluetooth-pa--method-objects
+    (let ((methods '("Release" "RequestPinCode" "DisplayPinCode"
+                     "RequestPasskey" "DisplayPasskey" "RequestConfirmation"
+                     "RequestAuthorization" "AuthorizeService" "Cancel")))
+      (setq bluetooth-pa--method-objects
+            (cl-loop for method in methods
+                     for fname = (bluetooth-lib-make-function-name method "-pa-")
+                     collect (dbus-register-method bluetooth-bluez-bus
+                                                   dbus-service-emacs
+                                                   bluetooth-pa-own-path
+                                                   (bluetooth-lib-interface :agent)
+                                                   method (intern fname) t)))
+      (dbus-register-service :session dbus-service-emacs)
+      (bluetooth-lib-dbus-sync-method bluetooth-root "RegisterAgent"
+                                      :agent-manager
+                                      :object-path bluetooth-pa-own-path "KeyboardDisplay"))))
 
 (defun bluetooth-pa-unregister-agent ()
   "Unregister agent and clean up."
-  (bluetooth-lib-dbus-sync-method bluetooth-root "UnregisterAgent"
-                              :agent-manager
-                              :object-path bluetooth-pa-own-path)
-  (mapc #'dbus-unregister-object bluetooth-pa--method-objects))
+  (ignore-errors
+    (bluetooth-lib-dbus-sync-method bluetooth-root "UnregisterAgent"
+                                    :agent-manager
+                                    :object-path bluetooth-pa-own-path)
+    (mapc #'dbus-unregister-object bluetooth-pa--method-objects))
+  (setf bluetooth-pa--method-objects '()))
 
 (provide 'bluetooth-pa)
 ;;; bluetooth-pa.el ends here
