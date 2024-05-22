@@ -1,12 +1,14 @@
-;;; bluetooth.el --- A Major mode for Bluetooth devices -*- lexical-binding: t -*-
+;;; bluetooth.el --- A Major mode for Bluetooth devices  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019, 2020, 2022, 2024 Free Software Foundation, Inc.
+;; Copyright (C) 2019-2024 Free Software Foundation, Inc.
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;;         Etienne Prud’homme <e.e.f.prudhomme@gmail.com>
 ;;
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
+;; Version: 0.4
+;; Package-Requires: ((emacs "25.1") (dash "2.18.1"))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
