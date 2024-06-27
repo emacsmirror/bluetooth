@@ -207,7 +207,8 @@ This function only uses the first adapter reported by Bluez."
 
 (defun bluetooth--cleanup ()
   "Clean up when mode buffer is killed."
-  (dbus-unregister-object bluetooth--adapter-signal)
+  (when (dbus-unregister-object bluetooth--adapter-signal)
+    (setq bluetooth--adapter-signal nil))
   (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
   (when bluetooth--update-timer
     (cancel-timer bluetooth--update-timer)
@@ -644,28 +645,41 @@ Calling this function will unpair device and host."
 This function starts Bluetooth mode which offers an interface
 offering device management functions, e.g. pairing, connecting,
 scanning the bus, displaying device info etc."
+  ;; four cases:
+  ;; 1. initialized and bluetooth-mode
+  ;;    - do nothing
+  ;; 2. not initialized and bluetooth-mode
+  ;;    - initialize
+  ;;    - build buffer
+  ;; 3. not initialized and not bluetooth-mode
+  ;;    - initialize
+  ;;    - erase buffer
+  ;;    - build buffer
+  ;; 4. initialized and not bluetooth-mode
+  ;;    - erase buffer
+  ;;    - build buffer
   (interactive)
   (unless bluetooth--initialized
     (bluetooth-init))
   (with-current-buffer (switch-to-buffer bluetooth-buffer-name)
     (unless (derived-mode-p 'bluetooth-mode)
-      (erase-buffer)
-      (bluetooth-mode)
-      (cl-pushnew bluetooth--mode-info mode-line-process)
-      (setq imenu-create-index-function #'bluetooth--create-imenu-index)
-      (bluetooth--initialize-mode-info)
-      (setq bluetooth--update-timer
-            (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
-                                                "Discovering")
-                (run-at-time nil bluetooth-update-interval
-                             #'bluetooth--update-print)
-              nil))
-      (setq bluetooth--adapter-signal
-            (bluetooth-lib-register-props-signal nil
-                                                 (bluetooth-lib-path
-                                                  (cl-first (bluetooth-lib-query-adapters)))
-                                                 :adapter
-                                                 #'bluetooth--handle-prop-change)))))
+      (erase-buffer))
+    (bluetooth-mode)
+    (cl-pushnew bluetooth--mode-info mode-line-process)
+    (setq imenu-create-index-function #'bluetooth--create-imenu-index)
+    (bluetooth--initialize-mode-info)
+    (setq bluetooth--update-timer
+          (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
+                                              "Discovering")
+              (run-at-time nil bluetooth-update-interval
+                           #'bluetooth--update-print)
+            nil))
+    (setq bluetooth--adapter-signal
+          (bluetooth-lib-register-props-signal nil
+                                               (bluetooth-lib-path
+                                                (cl-first (bluetooth-lib-query-adapters)))
+                                               :adapter
+                                               #'bluetooth--handle-prop-change))))
 
 (defun bluetooth-shutdown (&optional arg)
   "Shutdown Bluetooth mode.
@@ -673,15 +687,16 @@ This command will unregister any agents and plugins and free
 D-Bus ressources.  If called interactively, it will ask for
 confirmation before shutting down."
   (interactive "p")
+  (bluetooth--barf-if-uninitialized)
   (let ((do-shutdown (if (and arg
                               (not (y-or-n-p "Shutdown Bluetooth mode?")))
                          nil
                        t)))
     (when do-shutdown
       (unwind-protect
-          (progn (bluetooth-plugin-unregister-all)
+          (progn (bluetooth-device-cleanup)
+                 (bluetooth-plugin-unregister-all)
                  (bluetooth-pa-unregister-agent)
-                 (bluetooth-device-cleanup)
                  (bluetooth--cleanup))
         (setf bluetooth--initialized nil)))))
 
