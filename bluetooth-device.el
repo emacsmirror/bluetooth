@@ -165,7 +165,8 @@ devices that have newly connected."
     (mapc (lambda (dev-id)
             (bluetooth-device--remove dev-id))
           (cl-set-difference (hash-table-keys bluetooth-device--info)
-                             queried-devices))
+                             queried-devices
+                             :test #'string=))
     (mapc (lambda (dev-id)
             (if-let (device (bluetooth-device dev-id))
                 (bluetooth-device--update dev-id device callback)
