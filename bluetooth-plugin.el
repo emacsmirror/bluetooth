@@ -78,14 +78,12 @@ is called."
   (if (gethash api bluetooth-plugin--objects)
       (message "A bluetooth plugin is already registered for interface %s"
                (bluetooth-lib-interface api))
-    (setf (plist-get (gethash api bluetooth-plugin--objects) :new-fn)
-          new-fn)
     (cl-mapc (lambda (key fn)
                (when fn
                  (setf (plist-get (gethash api bluetooth-plugin--objects) key)
                        fn)))
-             (list :info-fn :cleanup-fn :remove-fn)
-             (list info-fn cleanup-fn remove-fn))
+             (list :new-fn :info-fn :cleanup-fn :remove-fn)
+             (list new-fn info-fn cleanup-fn remove-fn))
     ;; TODO add transient
     )
   nil)
@@ -94,7 +92,8 @@ is called."
   "Unregister the plugin for API."
   (when-let (entry (and (hash-table-p bluetooth-plugin--objects)
                         (gethash api bluetooth-plugin--objects)))
-    (funcall (plist-get entry :cleanup-fn))
+    (when-let ((cleanup-fn (plist-get entry :cleanup-fn)))
+      (funcall cleanup-fn))
     (remhash api bluetooth-plugin--objects)))
 
 (defun bluetooth-plugin-unregister-all ()
