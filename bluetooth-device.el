@@ -34,8 +34,8 @@
 (require 'cl-lib)
 (require 'bluetooth-lib)
 
-(declare-function bluetooth-plugin-dev-remove "bluetooth-device")
-(declare-function bluetooth-plugin-dev-add "bluetooth-device")
+(declare-function bluetooth-plugin-dev-remove "bluetooth-plugin")
+(declare-function bluetooth-plugin-dev-update "bluetooth-plugin")
 
 (defvar bluetooth-device--info nil "Device info obtained from Bluez.")
 
@@ -83,22 +83,21 @@ This structure holds all the device properties."
 The optional callback function takes a ‘bluetooth-device’ as
 argument and is called after the device properties have been
 updated."
-  (let ((adapter (bluetooth-device-property device "Adapter"))
-        (dev-id (bluetooth-device-id device)))
-    (cl-flet ((handler (_interface changed-props &rest _)
-                (let ((device (bluetooth-device dev-id)))
+  (let ((dev-id (bluetooth-device-id device)))
+    (cl-labels ((handler (_interface changed-props &rest _)
+                (let ((dev (bluetooth-device dev-id)))
                   (mapc (lambda (prop)
                           (cl-destructuring-bind (key (value)) prop
-                            (setf (bluetooth-device-property device key)
+                            (setf (bluetooth-device-property dev key)
                                   value)
-                            (when (string= "Connected" key)
+                            (when (string= "ServicesResolved" key)
                               (if value
-                                  (bluetooth-plugin-dev-add device)
-                                (bluetooth-plugin-dev-remove device)))))
+                                  (bluetooth-plugin-dev-update dev)
+                                (bluetooth-plugin-dev-remove dev)))))
                         changed-props)
-                  (when callback (funcall callback device)))))
+                  (when callback (funcall callback dev)))))
       (bluetooth-lib-register-props-signal bluetooth-service
-                                           (concat adapter "/" dev-id)
+                                           (bluetooth-device-path device)
                                            :device
                                            #'handler))))
 
@@ -125,7 +124,7 @@ handler after device properties have changed."
     (when (bluetooth-device-property device "Paired")
       (setf (bluetooth-device-signal-handler device)
             (bluetooth-device--make-signal-handler device callback))
-      (bluetooth-plugin-dev-add device))
+      (bluetooth-plugin-dev-update device))
     (setf (gethash dev-id bluetooth-device--info) device)))
 
 (defun bluetooth-device--update (dev-id device &optional callback)
