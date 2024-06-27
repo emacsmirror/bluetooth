@@ -116,24 +116,18 @@ is called."
                          (cl-remove dev-id (plist-get entry :dev-ids)))))
                bluetooth-plugin--objects))))
 
-(defun bluetooth-plugin-dev-add (device)
+(defun bluetooth-plugin-dev-update (device)
   "Add DEVICE to the handled devices.
 Obtain a list of interfaces provided by DEVICE and notify plugins registered
 for these interfaces of the newly added device."
   (when (hash-table-p bluetooth-plugin--objects)
-    (cl-labels ((install (path api)
-                  (let ((dev-id (bluetooth-device-id-by-path path)))
-                    (push dev-id
-                          (plist-get (gethash api bluetooth-plugin--objects)
-                                     :dev-ids))))
-                (notify (api entry)
-                  (let ((matches (bluetooth-lib-match (bluetooth-lib-get-objects
-                                                     (bluetooth-device-path device))
-                                                    (bluetooth-lib-interface api))))
-                    (dolist (match matches)
-                      (when-let ((new-fn (plist-get entry :new-fn)))
-                        (install (car match) api)
-                        (funcall new-fn (car match)))))))
+    (cl-labels ((notify (api entry)
+                  (when-let ((interface (bluetooth-device-implements-p device api)))
+                    (when-let ((new-fn (plist-get entry :new-fn)))
+                      (cl-pushnew (bluetooth-device-id device)
+                                  (plist-get (gethash api bluetooth-plugin--objects)
+                                             :dev-ids))
+                      (funcall new-fn device)))))
       (maphash #'notify bluetooth-plugin--objects))))
 
 (defun bluetooth-plugin-insert-infos (device)
