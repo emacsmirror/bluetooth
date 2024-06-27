@@ -180,10 +180,14 @@ devices that have newly connected."
         (bluetooth-lib-query-adapters)))
 
 (defun bluetooth-device-implements-p (device api)
-  "Indicate whether DEVICE implements API."
-  (let ((obj (bluetooth-lib-get-objects (bluetooth-device-path device))))
-    (when (bluetooth-lib-match obj (bluetooth-lib-interface api))
-      t)))
+  "Indicate whether DEVICE offers API.
+Returns the interface name or nil, if not implemented by device."
+  (when-let ((res (member (bluetooth-lib-interface api)
+                          (dbus-introspect-get-interface-names bluetooth-bluez-bus
+                                                               bluetooth-service
+                                                               (bluetooth-device-path
+                                                                device)))))
+    (car res)))
 
 (defun bluetooth-device-map (fn &optional filter-fn &rest args)
   "Map FN over all devices.
