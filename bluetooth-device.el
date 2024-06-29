@@ -26,8 +26,6 @@
 ;; The signal handler also calls a callback function whenever properties
 ;; change.  This is used to keep the tabulated list view current.
 ;;
-;; If application code wants to be notified about changed properties, a signal
-;; handler can be installed using ‘bluetooth-lib-register-props-signal’.
 
 ;;; Code:
 
@@ -40,11 +38,12 @@
 (defvar bluetooth-device--info nil "Device info obtained from Bluez.")
 
 (cl-defstruct bluetooth-device
-  "A bluetooth device.
+  "A Bluetooth device.
 This structure holds all the device properties."
   (id nil :read-only t)
   signal-handler
-  properties)
+  properties
+  property-functions)
 
 (defun bluetooth-device-property (device property)
   "Return DEVICE's property PROPERTY."
@@ -60,6 +59,42 @@ This structure holds all the device properties."
 
 (gv-define-simple-setter bluetooth-device-property
                          bluetooth-device--property-set)
+
+(defun bluetooth-device--prop-fns (device property)
+  "Return DEVICE's PROPERTY functions."
+  (alist-get property (bluetooth-device-property-functions device)
+             nil nil #'string=))
+
+(defun bluetooth-device--prop-fns-set (device property value)
+  "Set DEVICE's PROPERTY functions."
+  (setf (alist-get property (bluetooth-device-property-functions device)
+                   nil nil #'string=)
+        value))
+
+(gv-define-simple-setter bluetooth-device--prop-fns
+                         bluetooth-device--prop-fns-set)
+
+(defun bluetooth-device-add-prop-hook (device property function)
+  "Add to DEVICE's PROPERTY hook the function FUNCTION.
+This FUNCTION will be called when the specified PROPERTY changes.
+
+The FUNCTION must take the three arguments PROPERTY, VALUE, and
+INTERFACE with the following meaning:
+PROPERTY: the name of the changed property,
+VALUE: the new value,
+INTERFACE: the D-Bus interface name of the property."
+  (let ((fns (bluetooth-device--prop-fns device property)))
+    (if fns
+        (cl-pushnew function fns :test #'equal)
+      (setf fns (list function)))
+    (setf (bluetooth-device--prop-fns device property) fns)))
+
+(defun bluetooth-device-remove-prop-hook (device property function)
+  "Remove from DEVICE's PROPERTY hook the function FUNCTION."
+  (setf (bluetooth-device--prop-fns device property)
+        (cl-delete function
+                   (bluetooth-device--prop-fns device property)
+                   :test #'equal)))
 
 (defun bluetooth-device (dev-id)
   "Return the device struct or DEV-ID."
@@ -78,24 +113,37 @@ This structure holds all the device properties."
                       path)
     (match-string 1 path)))
 
+(defun bluetooth-device--call-prop-functions (device property &rest args)
+  "Call all of DEVICE's PROPERTY functions with ARGS."
+  (when-let ((functions (bluetooth-device--prop-fns device property)))
+    (dolist (fn functions)
+      (when (functionp fn)
+        (apply fn device property args)))))
+
 (defun bluetooth-device--make-signal-handler (device &optional callback)
   "Make a signal handler for DEVICE, with CALLBACK.
 The optional callback function takes a ‘bluetooth-device’ as
-argument and is called after the device properties have been
-updated."
+argument; the signal handler will call this function after any
+properties have changed.
+
+For each changed property, the signal handler will also call the
+DEVICE's property functions.  See
+‘bluetooth-device-add-prop-hook’."
   (let ((dev-id (bluetooth-device-id device)))
-    (cl-labels ((handler (_interface changed-props &rest _)
-                (let ((dev (bluetooth-device dev-id)))
-                  (mapc (lambda (prop)
-                          (cl-destructuring-bind (key (value)) prop
-                            (setf (bluetooth-device-property dev key)
-                                  value)
-                            (when (string= "ServicesResolved" key)
-                              (if value
-                                  (bluetooth-plugin-dev-update dev)
-                                (bluetooth-plugin-dev-remove dev)))))
-                        changed-props)
-                  (when callback (funcall callback dev)))))
+    (cl-labels ((handler (interface changed-props &rest _)
+                  (let ((dev (bluetooth-device dev-id)))
+                    (mapc (lambda (prop)
+                            (cl-destructuring-bind (key (value)) prop
+                              (setf (bluetooth-device-property dev key)
+                                    value)
+                              (when (string= "ServicesResolved" key)
+                                (if value
+                                    (bluetooth-plugin-dev-update dev)
+                                  (bluetooth-plugin-dev-remove dev)))
+                              (bluetooth-device--call-prop-functions
+                               device key value interface)))
+                          changed-props)
+                    (when callback (funcall callback dev)))))
       (bluetooth-lib-register-props-signal bluetooth-service
                                            (bluetooth-device-path device)
                                            #'handler))))
@@ -106,7 +154,6 @@ This also unregisters any signal handlers."
   (let ((device (bluetooth-device dev-id)))
     (when (bluetooth-device-signal-handler device)
       (dbus-unregister-object (bluetooth-device-signal-handler device))
-      (setf (bluetooth-device-signal-handler device) nil)
       (bluetooth-plugin-dev-remove device)))
   (remhash dev-id bluetooth-device--info))
 
@@ -119,7 +166,8 @@ handler after device properties have changed."
                  :device))
          (device (make-bluetooth-device :id dev-id
                                         :signal-handler nil
-                                        :properties props)))
+                                        :properties props
+                                        :property-functions nil)))
     (when (bluetooth-device-property device "Paired")
       (setf (bluetooth-device-signal-handler device)
             (bluetooth-device--make-signal-handler device callback))
