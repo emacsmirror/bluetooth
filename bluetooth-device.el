@@ -49,12 +49,12 @@ This structure holds all the device properties."
   "Return DEVICE's property PROPERTY."
   (alist-get property
              (bluetooth-device-properties device)
-             nil nil #'equal))
+             nil nil #'string=))
 
 (defun bluetooth-device--property-set (device property value)
   "Set DEVICE's PROPERTY to VALUE."
   (setf (alist-get property (bluetooth-device-properties device)
-                   nil nil #'equal)
+                   nil nil #'string=)
         value))
 
 (gv-define-simple-setter bluetooth-device-property
