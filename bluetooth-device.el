@@ -119,7 +119,7 @@ INTERFACE: the D-Bus interface name of the property."
   "Call all of DEVICE's PROPERTY functions with ARGS."
   (when-let ((functions (bluetooth-device--prop-fns device property)))
     (dolist (fn functions)
-      (when (functionp fn)
+      (when (fboundp fn)
         (apply fn device property args)))))
 
 (defun bluetooth-device--make-signal-handler (device &optional callback)
