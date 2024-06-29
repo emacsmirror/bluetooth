@@ -98,7 +98,6 @@ updated."
                   (when callback (funcall callback dev)))))
       (bluetooth-lib-register-props-signal bluetooth-service
                                            (bluetooth-device-path device)
-                                           :device
                                            #'handler))))
 
 (defun bluetooth-device--remove (dev-id)

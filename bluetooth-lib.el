@@ -172,13 +172,13 @@ The method is called synchronously."
   "Set PROPERTY to ARG on D-Bus API for object at PATH."
   (bluetooth-lib--call-method path api #'dbus-set-property property arg))
 
-(defun bluetooth-lib-register-props-signal (service path api handler-fn)
+(defun bluetooth-lib-register-props-signal (service path handler-fn &rest args)
   "Register a signal handler to be notified when properties change.
 The argument SERVICE specifies the bluetooth service,
 e.g. ‘bluetooth-service’, or is nil for adapter signals.  The
 argument PATH specifies the path to the D-Bus object holding the
-property.  API specifies the api interface to use, see
-‘bluetooth-lib--apis’.
+property.  ARGS can contain further arguments passed to
+‘dbus-register-signal’.
 
 HANDLER-FN is signal handler function taking three arguments:
  INTERFACE-NAME: name of the interface with property changes
@@ -187,14 +187,9 @@ HANDLER-FN is signal handler function taking three arguments:
 
 The return value is a D-Bus object that should be unregistered
 with ‘dbus-unregister-object’ when not needed anymore."
-  (dbus-register-signal bluetooth-bluez-bus
-                        service
-                        path
-                        (bluetooth-lib-interface :properties)
-                        "PropertiesChanged"
-                        handler-fn
-                        :arg-namespace
-                        (bluetooth-lib-interface api)))
+  (apply #'dbus-register-signal bluetooth-bluez-bus
+         service path (bluetooth-lib-interface :properties)
+         "PropertiesChanged" handler-fn args))
 
 (defun bluetooth-lib-get-objects (path)
   "Get all Bluez objects on PATH."

@@ -679,8 +679,9 @@ scanning the bus, displaying device info etc."
           (bluetooth-lib-register-props-signal nil
                                                (bluetooth-lib-path
                                                 (cl-first (bluetooth-lib-query-adapters)))
-                                               :adapter
-                                               #'bluetooth--handle-prop-change))))
+                                               #'bluetooth--handle-prop-change
+                                               :arg-namespace
+                                               (bluetooth-lib-interface :adapter)))))
 
 (defun bluetooth-shutdown (&optional arg)
   "Shutdown Bluetooth mode.
