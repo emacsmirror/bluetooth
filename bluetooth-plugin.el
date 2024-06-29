@@ -49,6 +49,10 @@ following keys and values:
   for which the plugin registered connects,
 - info-fn: a function called from ‘bluetooth-show-device-info’
   to show device information,
+- remove-fn: a function called when a device handled by the
+  plugin is disconnected,
+- cleanup-fn: a function called when the plugin is
+  unregistered.
 - dev-ids: a list of device IDs that the plugin handles.")
 
 (defun bluetooth-plugin-register (api new-fn &optional info-fn
@@ -66,6 +70,9 @@ information.
 The optional function REMOVE-FN is called when a device is
 removed (unpaired) or disconnects.  It takes a ‘bluetooth-device’
 as argument.
+
+The optional function CLEANUP-FN is called when a plugin is
+unregistered.
 
 The optional TRANSIENT can be provided as a device menu to
 interact with the device.
@@ -130,6 +137,10 @@ for these interfaces of the newly added device."
       (maphash #'notify bluetooth-plugin--objects))))
 
 (defun bluetooth-plugin-insert-infos (device)
+  "Provide information about DEVICE provided by the plugin.
+This function calls the info-fn provided at plugin registration.  This
+function is expected to call ‘insert’ to insert its information into the
+current buffer."
   (when (hash-table-p bluetooth-plugin--objects)
     (when-let ((dev-id (and (bluetooth-device-property device "Connected")
                             (bluetooth-device-id device))))
