@@ -39,14 +39,15 @@
 
 (cl-defstruct bluetooth-device
   "A Bluetooth device.
-This structure holds all the device properties."
+This structure holds all the device properties, the per-device signal handler
+and the property hooks."
   (id nil :read-only t)
   signal-handler
   properties
   property-functions)
 
 (defun bluetooth-device-property (device property)
-  "Return DEVICE's property PROPERTY."
+  "Return the value of DEVICE's PROPERTY."
   (alist-get property
              (bluetooth-device-properties device)
              nil nil #'string=))
@@ -76,12 +77,13 @@ This structure holds all the device properties."
 
 (defun bluetooth-device-add-prop-hook (device property function)
   "Add to DEVICE's PROPERTY hook the function FUNCTION.
-This FUNCTION will be called when the specified PROPERTY changes.
+The FUNCTION will be called when the specified PROPERTY changes.
 
-The FUNCTION must take the three arguments PROPERTY, VALUE, and
-INTERFACE with the following meaning:
+The FUNCTION must take the four arguments DEVICE, PROPERTY, VALUE,
+and INTERFACE with the following meaning:
+DEVICE: the ‘bluetooth-device’ whose property has change,
 PROPERTY: the name of the changed property,
-VALUE: the new value,
+VALUE: the new value of this property,
 INTERFACE: the D-Bus interface name of the property."
   (let ((fns (bluetooth-device--prop-fns device property)))
     (if fns
@@ -97,18 +99,18 @@ INTERFACE: the D-Bus interface name of the property."
                    :test #'equal)))
 
 (defun bluetooth-device (dev-id)
-  "Return the device struct or DEV-ID."
+  "Return the device struct for DEV-ID."
   (gethash dev-id bluetooth-device--info))
 
 (defun bluetooth-device-path (device)
-  "Return the full path of DEVICE"
+  "Return the full D-Bus path of DEVICE."
   (when device
     (concat (bluetooth-device-property device "Adapter")
             "/"
             (bluetooth-device-id device))))
 
 (defun bluetooth-device-id-by-path (path)
-  "Return the device ID embedded in path or nil if there isn't one."
+  "Return the device id embedded in PATH or nil if there isn't one."
   (when (string-match ".*\\(dev\\(_[[:alnum:]]\\{2\\}\\)\\{6\\}\\)"
                       path)
     (match-string 1 path)))
@@ -122,13 +124,12 @@ INTERFACE: the D-Bus interface name of the property."
 
 (defun bluetooth-device--make-signal-handler (device &optional callback)
   "Make a signal handler for DEVICE, with CALLBACK.
-The optional callback function takes a ‘bluetooth-device’ as
+The optional CALLBACK function takes a ‘bluetooth-device’ as
 argument; the signal handler will call this function after any
 properties have changed.
 
 For each changed property, the signal handler will also call the
-DEVICE's property functions.  See
-‘bluetooth-device-add-prop-hook’."
+DEVICE's property functions.  See ‘bluetooth-device-add-prop-hook’."
   (let ((dev-id (bluetooth-device-id device)))
     (cl-labels ((handler (interface changed-props &rest _)
                   (let ((dev (bluetooth-device dev-id)))
@@ -159,8 +160,8 @@ This also unregisters any signal handlers."
 
 (defun bluetooth-device--add (dev-id adapter &optional callback)
   "Add device with DEV-ID on ADAPTER and CALLBACK to device info.
-The CALLBACK function is called from the properties signal
-handler after device properties have changed."
+The device signal handler will call the CALLBACK function after
+any device properties have changed."
   (let* ((props (bluetooth-lib-query-properties
                  (bluetooth-lib-path adapter dev-id)
                  :device))
@@ -175,7 +176,7 @@ handler after device properties have changed."
     (setf (gethash dev-id bluetooth-device--info) device)))
 
 (defun bluetooth-device--update (dev-id device &optional callback)
-  "Update device info for id DEV-ID with data in DEVICE and CALLBACK.
+  "Update device info for id DEV-ID from data in DEVICE and CALLBACK.
 The CALLBACK function is installed only if no signal handler was
 installed before and is otherwise ignored."
   (setf (bluetooth-device-properties (bluetooth-device dev-id))
@@ -197,7 +198,7 @@ Call this function only once, usually at mode initialization."
         (bluetooth-lib-query-adapters)))
 
 (defun bluetooth-device-cleanup ()
-  "Cleanup the internal device table, removing every known device.
+  "Clean up the internal device table, removing every known device.
 The cleanup will also unregister any installed signal handlers."
   (when (hash-table-p bluetooth-device--info)
     (mapc #'bluetooth-device--remove
@@ -228,7 +229,8 @@ devices that have newly connected."
 
 (defun bluetooth-device-implements-p (device api)
   "Indicate whether DEVICE offers API.
-Returns the interface name or nil, if not implemented by device."
+Returns the corresponding D-Bus interface name or nil, if not
+implemented by device."
   (when-let ((res (member (bluetooth-lib-interface api)
                           (dbus-introspect-get-interface-names bluetooth-bluez-bus
                                                                bluetooth-service
@@ -237,11 +239,13 @@ Returns the interface name or nil, if not implemented by device."
     (car res)))
 
 (defun bluetooth-device-map (fn &optional filter-fn &rest args)
-  "Map FN over all devices.
-The function FN takes the device id and a ‘bluetooth-device’ as
-arguments.
-The argument FILTER-FN, when supplied, must a predicate that takes a
-‘bluetooth-device’ as its first argument and ARGS as the rest."
+  "Map FN over all devices specified by FILTER-FN, passing ARGS.
+The function FN takes the device id and the corresponding
+‘bluetooth-device’ as arguments.
+
+The argument FILTER-FN, when supplied, must be a predicate that
+takes a ‘bluetooth-device’ as its first argument and ARGS as the
+rest."
   (maphash (lambda (id dev)
              (if filter-fn
                  (when (apply filter-fn dev args)
