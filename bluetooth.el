@@ -633,7 +633,8 @@ Calling this function will unpair device and host."
 (defun bluetooth-init ()
   "Initialize bluetooth mode."
   ;; make sure D-Bus is (made) available
-  (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
+  (unless (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
+    (error "The bluetooth service “%s” is not available" bluetooth-service))
   (bluetooth-pa-register-agent)
   (bluetooth-plugin-init)
   (bluetooth-device-init #'bluetooth--print-list)
