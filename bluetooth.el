@@ -77,10 +77,10 @@
 ;;;; internal constants and variables
 
 (defconst bluetooth-buffer-name "*Bluetooth*"
-  "Name of the buffer in which to list bluetooth devices.")
+  "Name of the buffer in which to list Bluetooth devices.")
 
 (defconst bluetooth-info-buffer-name "*Bluetooth info*"
-  "Name of the bluetooth info buffer.")
+  "Name of the Bluetooth info buffer.")
 
 (defconst bluetooth--mode-name "Bluetooth" "Pretty print mode name.")
 
@@ -105,6 +105,7 @@ of a property."
   (if (bluetooth-property-active-p property)
       (bluetooth-property-active-text property)
     (bluetooth-property-inactive-text property)))
+
 
 (defvar bluetooth--mode-state `(("Powered" . ,(make-bluetooth-property
                                                :inactive-text "off"))
@@ -132,7 +133,7 @@ property and state.")
 (defvar bluetooth--adapter-signal nil "D-Bus adapter signal object.")
 
 (defvar bluetooth--update-timer nil
-  "The bluetooth device table update timer.")
+  "The Bluetooth device table update timer.")
 
 
 ;;;; internal functions
@@ -140,7 +141,7 @@ property and state.")
 (defconst bluetooth--list-format
   [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
    ("Blocked" 9 t) ("Trusted" 9 t)]
-  "The list view format for bluetooth mode.
+  "The list view format for Bluetooth mode.
 
 NOTE: the strings MUST correspond to Bluez device properties
 as they are used to gather the information from Bluez.")
@@ -216,7 +217,7 @@ This function only uses the first adapter reported by Bluez."
 
 ;; TODO test!
 (defun bluetooth-unload-function ()
-  "Clean up when the bluetooth feature is unloaded."
+  "Clean up when the Bluetooth feature is unloaded."
   (bluetooth-shutdown)
   (when (buffer-live-p (get-buffer bluetooth-buffer-name))
     (bluetooth-shutdown)
@@ -227,10 +228,10 @@ This function only uses the first adapter reported by Bluez."
   (unless bluetooth--initialized
 	(user-error "Bluetooth is not initialized.  Try ‘bluetooth-list-devices’.")))
 
-;; This function is called from Emacs's mode-line update code
-;; and must not contain any calls to D-Bus functions.
 (defun bluetooth--mode-info ()
   "Update the mode info display."
+  ;; This function is called from Emacs's mode-line update code
+  ;; and must not contain any calls to D-Bus functions.
   (let ((info (mapconcat #'identity
                          (--keep (bluetooth-property-text (cl-rest it))
                                  bluetooth--mode-state)
@@ -250,7 +251,6 @@ update the status display accordingly."
           data)
     (force-mode-line-update)))
 
-;; TODO remove this and replace by general path construction function
 (defun bluetooth--make-path (api)
   "Return the path of the currently selected device."
   (cond ((eq :device api)
@@ -321,7 +321,7 @@ profiles."
     (command-execute #'bluetooth-disconnect)))
 
 (defmacro bluetooth-defun-method (method api docstring &rest body)
-  "Make a function calling a bluetooth METHOD using API.
+  "Make a function calling a Bluetooth METHOD using API.
 The function will have DOCSTRING as its documentation and is
 implemented by BODY."
   (declare (doc-string 3) (indent 2))
@@ -567,7 +567,7 @@ Calling this function will unpair device and host."
           (bluetooth-uuid-interpret uuids))))
 
 (defun bluetooth--ins-rf-info (props)
-  "Insert rf information from properties alist PROPS."
+  "Insert RF information from properties alist PROPS."
   (let* ((rssi (cl-rest (assoc "RSSI" props)))
          (tx-power (cl-rest (assoc "TxPower" props)))
          (loss (when (and rssi tx-power) (- tx-power rssi))))
@@ -608,7 +608,7 @@ Calling this function will unpair device and host."
         (special-mode)))))
 
 (defun bluetooth-show-adapter-info ()
-  "Show detailed information on the (first) bluetooth adapter."
+  "Show detailed information on the (first) Bluetooth adapter."
   (interactive)
   (bluetooth--barf-if-uninitialized)
   (let* ((adapter (cl-first (bluetooth-lib-query-adapters)))
@@ -631,7 +631,7 @@ Calling this function will unpair device and host."
 
 ;;;###autoload
 (defun bluetooth-init ()
-  "Initialize bluetooth mode."
+  "Initialize Bluetooth mode."
   ;; make sure D-Bus is (made) available
   (unless (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
     (error "The bluetooth service “%s” is not available" bluetooth-service))
@@ -686,7 +686,7 @@ scanning the bus, displaying device info etc."
 (defun bluetooth-shutdown (&optional arg)
   "Shutdown Bluetooth mode.
 This command will unregister any agents and plugins and free
-D-Bus ressources.  If called interactively, it will ask for
+D-Bus resources.  If called interactively, it will ask for
 confirmation before shutting down."
   (interactive "p")
   (bluetooth--barf-if-uninitialized)
