@@ -218,15 +218,6 @@ This function only uses the first adapter reported by Bluez."
     (cancel-timer bluetooth--update-timer)
     (setq bluetooth--update-timer nil)))
 
-;; TODO test!
-(defun bluetooth-unload-function ()
-  "Clean up when the Bluetooth feature is unloaded."
-  (bluetooth-shutdown)
-  (when (buffer-live-p (get-buffer bluetooth-buffer-name))
-    (bluetooth-shutdown)
-    (kill-buffer bluetooth-buffer-name))
-  nil)
-
 (defun bluetooth--barf-if-uninitialized ()
   (unless bluetooth--initialized
 	(user-error "Bluetooth is not initialized.  Try ‘bluetooth-list-devices’.")))
