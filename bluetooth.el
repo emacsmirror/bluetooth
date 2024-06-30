@@ -618,9 +618,10 @@ If enabled, the device info display follows the selected device entry."
       (let ((props (bluetooth-device-properties device)))
         (bluetooth--ins-heading "Bluetooth device info\n\n")
         (mapc (lambda (it) (bluetooth--ins-attr props it))
-              '("Alias" "Address" "AddressType" "Paired" "Trusted"
-                "Blocked" "LegacyPairing" "Connected" "Modalias"
-                "ServicesResolved" "WakeAllowed" "Adapter"))
+              '("Alias" "Address" "AddressType" "Paired" "Bonded"
+                "Trusted" "Blocked" "LegacyPairing" "Connected"
+                "Modalias" "ServicesResolved" "WakeAllowed"
+                "Adapter"))
         (funcall (-juxt #'bluetooth--ins-rf-info
                         #'bluetooth--ins-mfc-info
                         #'bluetooth--ins-classes
