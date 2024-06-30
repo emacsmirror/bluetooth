@@ -1,3 +1,6 @@
+#+OPTIONS: author:nil
+#+EXPORT_FILE_NAME: README
+
 * Emacs Bluetooth Mode
 
   This package provides a simple Bluetooth mode that can be used to manage
@@ -29,31 +32,33 @@
 *** Key bindings
 
     The following table lists the default key bindings:
-    | Key         | Command                                                                                                |
-    |-------------+--------------------------------------------------------------------------------------------------------|
-    | P           | pair with a device                                                                                     |
-    | c           | connect to a device (may start pairing procedure); with a prefix argument, connect to a single profile |
-    | d           | disconnect a device; with a prefix argument, disconnect a single profile                               |
-    | a           | set or reset a device's alias                                                                          |
-    | t           | toggle the trusted property of a device                                                                |
-    | b           | toggle the blocked property of a device (disconnects connected device)                                 |
-    | k           | remove a device (will disconnect and unpair)                                                           |
-    | i           | show device information, such as RSSI value, device class and services                                 |
-    | A           | show host adapter information                                                                          |
-    | r           | start discovery (scan) mode                                                                            |
-    | R           | stop discovery (scan) mode                                                                             |
-    | D           | toggle the discoverable property of the adapter                                                        |
-    | x           | toggle the pairable property of the adapter                                                            |
-    | s           | toggle the power supply of the adapter                                                                 |
-    | n           | next line                                                                                              |
-    | p           | previous line                                                                                          |
-    | <           | go to the beginning of the list                                                                        |
-    | >           | go to the end of the list                                                                              |
-    | g           | revert the buffer; this queries the bus for accessible devices                                         |
-    | S           | sort list by column at point                                                                           |
-    | h or ?      | describe the mode                                                                                      |
-    | q           | bury the buffer                                                                                        |
+    | Key       | Command                                                                                                |
+    |-----------+--------------------------------------------------------------------------------------------------------|
+    | P         | pair with a device                                                                                     |
+    | c         | connect to a device (may start pairing procedure); with a prefix argument, connect to a single profile |
+    | d         | disconnect a device; with a prefix argument, disconnect a single profile                               |
+    | a         | set or reset a device's alias                                                                          |
+    | t         | toggle the trusted property of a device                                                                |
+    | b         | toggle the blocked property of a device (disconnects connected device)                                 |
+    | k         | remove a device (will disconnect and unpair)                                                           |
+    | i         | show device information, such as RSSI value, device class and services                                 |
+    | A         | show host adapter information                                                                          |
+    | r         | start discovery (scan) mode                                                                            |
+    | R         | stop discovery (scan) mode                                                                             |
+    | D         | toggle the discoverable property of the adapter                                                        |
+    | x         | toggle the pairable property of the adapter                                                            |
+    | s         | toggle the power supply of the adapter                                                                 |
+    | n         | next line                                                                                              |
+    | p         | previous line                                                                                          |
+    | <         | go to the beginning of the list                                                                        |
+    | >         | go to the end of the list                                                                              |
+    | g         | revert the buffer; this queries the bus for accessible devices                                         |
+    | S         | sort list by column at point                                                                           |
+    | F         | Toggle device information follow mode                                                                  |
+    | h or ?    | describe the mode                                                                                      |
+    | q         | bury the buffer                                                                                        |
     | =M-x imenu= | invoke imenu to select a device                                                                        |
+    | Q         | Shutdown Bluetooth mode                                                                                |
 
 *** Notes
 
@@ -64,3 +69,23 @@
       connecting; devices are not trusted automatically.
     - Adapter commands always use the first adapter found in the system
       (i.e. reported by Bluez.)
+    
+** Plugins
+
+   Bluetooth mode offers an experimental plugin API, see =bluetooth-plugin.el=
+   and =bluetooth-battery.el= for an example.  ‘Experimental’ means that the API
+   will likely change a few times.  But don't let that discourage you from
+   writing a plugin, as any feedback from plugin authors will help improve and
+   eventually stabilize the API.
+
+   
+*** Bluetooth battery plugin
+
+    The battery plugin shows the battery information for devices that support
+    the =org.bluez.Battery1= interface.  It will also warn about low battery
+    levels if =bluetooth-battery-display-warning= is =t= and according to the
+    level chosen with =bluetooth-battery-warning-level=.
+
+    Note that some devices with batteries may not implement this interface.
+    This is sometimes true for HID devices that expose battery information
+    through the HID interface, which is not used by =bluetooth-battery.el=.
