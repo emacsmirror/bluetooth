@@ -446,7 +446,7 @@ If enabled, the device info display follows the selected device entry."
     (define-key map [?r] #'bluetooth-start-discovery)
     (define-key map [?R] #'bluetooth-stop-discovery)
     (define-key map [?s] #'bluetooth-toggle-powered)
-    (define-key map [?S] #'bluetooth-shutdown)
+    (define-key map [?Q] #'bluetooth-shutdown)
     (define-key map [?P] #'bluetooth-pair)
     (define-key map [?D] #'bluetooth-toggle-discoverable)
     (define-key map [?x] #'bluetooth-toggle-pairable)
