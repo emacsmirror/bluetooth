@@ -135,6 +135,8 @@ property and state.")
 (defvar bluetooth--update-timer nil
   "The Bluetooth device table update timer.")
 
+(defvar bluetooth--follow-last-line nil)
+
 
 ;;;; internal functions
 
@@ -414,6 +416,22 @@ Calling this function will unpair device and host."
     (goto-char (+ (point)
                   (- column (current-column))))))
 
+(define-minor-mode bluetooth-info-follow-mode
+  "Bluetooth info follow minor mode.
+If enabled, the device info display follows the selected device entry."
+  :group 'bluetooth :init-value nil :lighter " Fol"
+  (if (not bluetooth-info-follow-mode)
+      (remove-hook 'post-command-hook 'bluetooth-info-follow-mode-hook t)
+    (add-hook 'post-command-hook 'bluetooth-info-follow-mode-hook nil t)
+    (make-local-variable 'bluetooth--follow-last-line)))
+
+(defun bluetooth-info-follow-mode-hook ()
+  (unless (equal bluetooth--follow-last-line (line-number-at-pos))
+    (setf bluetooth--follow-last-line (line-number-at-pos))
+    (condition-case nil
+        (bluetooth-show-device-info)
+      (error t))))
+
 
 ;;;; keymap and menu
 
@@ -437,12 +455,20 @@ Calling this function will unpair device and host."
     (define-key map [?k] #'bluetooth-remove-device)
     (define-key map [?<] #'bluetooth-beginning-of-list)
     (define-key map [?>] #'bluetooth-end-of-list)
+    (define-key map [?F] #'bluetooth-info-follow-mode)
 
     (define-key map [menu-bar bluetooth]
                 (cons "Bluetooth" (make-sparse-keymap "Bluetooth")))
+    (define-key map [menu-bar bluetooth shutdown]
+                '(menu-item "Shutdown" bluetooth-shutdown
+                            :help "Shutdown bluetooth mode"))
+    (define-key map [menu-bar bluetooth follow]
+                '(menu-item "Toggle info" bluetooth-info-follow-mode
+                            :help "Toggle device info follow mode"))
+    
+
     (define-key map [menu-bar bluetooth device]
                 (cons "Device" (make-sparse-keymap "Device")))
-
     (define-key map [menu-bar bluetooth stop-discovery]
                 '(menu-item "Stop discovery" bluetooth-stop-discovery
                             :help "Stop discovery"))
@@ -461,9 +487,6 @@ Calling this function will unpair device and host."
     (define-key map [menu-bar bluetooth show-adapter-info]
                 '(menu-item "Show adapter info" bluetooth-show-adapter-info
                             :help "Show bluetooth adapter info"))
-    (define-key map [menu-bar bluetooth shutdown]
-                '(menu-item "Shutdown" bluetooth-shutdown
-                            :help "Shutdown bluetooth mode"))
 
     (define-key map [menu-bar bluetooth device show-info]
                 '(menu-item "Show device info" bluetooth-show-device-info
