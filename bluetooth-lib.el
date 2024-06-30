@@ -107,16 +107,16 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
   (plist-get bluetooth-lib--apis api))
 
 (defun bluetooth-lib-path (&rest nodes)
-  "Construct path from NODES, prepended by BLUETOOTH--ROOT."
+  "Construct path from NODES, prefixed by ‘bluetooth-root’."
   (mapconcat #'identity (cons bluetooth-root nodes) "/"))
 
 (defun bluetooth-lib-query-adapters ()
-  "Return a list of bluetooth adapters."
+  "Return a list of Bluetooth adapters."
   (dbus-introspect-get-node-names
    bluetooth-bluez-bus bluetooth-service bluetooth-root))
 
 (defun bluetooth-lib-query-devices (adapter)
-  "Return a list of bluetooth devices connected to ADAPTER."
+  "Return a list of Bluetooth devices connected to ADAPTER."
   (dbus-introspect-get-node-names bluetooth-bluez-bus bluetooth-service
                                   (bluetooth-lib-path adapter)))
 
@@ -132,22 +132,22 @@ The generated function name has the form ‘bluetoothPREFIX-NAME’."
     (alist-get property props nil nil #'equal)))
 
 (defun bluetooth-lib-adapter-properties (adapter)
-  "Return the properties of bluetooth ADAPTER.
+  "Return the properties of Bluetooth ADAPTER.
 This function evaluates to an alist of attribute/value pairs."
   (bluetooth-lib-query-properties (bluetooth-lib-path adapter) :adapter))
 
 (defun bluetooth-lib-adapter-property (adapter property)
-  "Return the value of ADAPTER's PROPERTY."
+  "For the ADAPTER, return the value of PROPERTY."
   (cl-rest (assoc property (bluetooth-lib-adapter-properties adapter))))
 
 (defun bluetooth-lib--call-method (path api method &rest args)
-  "For PATH, invoke D-Bus FUNCTION on API, passing ARGS."
+  "For PATH and using API, invoke the D-Bus METHOD, passing ARGS."
   (let ((interface (bluetooth-lib-interface api)))
     (when path
       (apply method bluetooth-bluez-bus bluetooth-service path interface args))))
 
 (defun bluetooth-lib-dbus-method (path method api &rest args)
-  "Invoke METHOD on D-Bus API with ARGS for object at PATH.
+  "For PATH, invoke METHOD on D-Bus API, passing ARGS.
 The method is called asynchronously with the timeout specified by
 ‘bluetooth-timeout’."
   (apply #'bluetooth-lib--call-method path api
@@ -155,21 +155,21 @@ The method is called asynchronously with the timeout specified by
          nil :timeout bluetooth-timeout args))
 
 (defun bluetooth-lib-dbus-sync-method (path method api &rest args)
-  "Invoke METHOD on D-Bus API with ARGS for object at PATH.
+  "For PATH, invoke METHOD on D-Bus API, passing ARGS.
 The method is called synchronously."
   (apply #'bluetooth-lib--call-method path api
          #'dbus-call-method method
          args))
 
 (defun bluetooth-lib-dbus-toggle (path property api)
-  "Toggle boolean PROPERTY on D-Bus API for object at PATH."
+  "For the D-Bus object PATH, toggle boolean PROPERTY on D-Bus API."
   (let ((value (bluetooth-lib--call-method path api
                                           #'dbus-get-property property)))
     (bluetooth-lib--call-method path api #'dbus-set-property property
-                               (not value))))
+                                (not value))))
 
 (defun bluetooth-lib-dbus-set (path property arg api)
-  "Set PROPERTY to ARG on D-Bus API for object at PATH."
+  "For the D-Bus object PATH, set PROPERTY to ARG on D-Bus API."
   (bluetooth-lib--call-method path api #'dbus-set-property property arg))
 
 (defun bluetooth-lib-register-props-signal (service path handler-fn &rest args)
@@ -177,13 +177,16 @@ The method is called synchronously."
 The argument SERVICE specifies the bluetooth service,
 e.g. ‘bluetooth-service’, or is nil for adapter signals.  The
 argument PATH specifies the path to the D-Bus object holding the
-property.  ARGS can contain further arguments passed to
-‘dbus-register-signal’.
+property.
 
 HANDLER-FN is signal handler function taking three arguments:
  INTERFACE-NAME: name of the interface with property changes
  CHANGED-PROPERTIES: an alist of changed properties
- INVALIDATED-PROPERTIES: an alist of changed properties without values.
+ INVALIDATED-PROPERTIES: an alist of changed properties without
+ values.
+
+ARGS can contain further arguments passed to
+‘dbus-register-signal’.
 
 The return value is a D-Bus object that should be unregistered
 with ‘dbus-unregister-object’ when not needed anymore."
