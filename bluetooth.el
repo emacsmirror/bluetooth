@@ -213,6 +213,7 @@ This function only uses the first adapter reported by Bluez."
   (when (dbus-unregister-object bluetooth--adapter-signal)
     (setq bluetooth--adapter-signal nil))
   (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
+  (remove-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (when bluetooth--update-timer
     (cancel-timer bluetooth--update-timer)
     (setq bluetooth--update-timer nil)))
@@ -260,6 +261,14 @@ update the status display accordingly."
         ((eq :adapter api)
          (bluetooth-lib-path (cl-first (bluetooth-lib-query-adapters))))))
 
+(defun bluetooth--show-error (&optional event error)
+  (when (and event error
+             (string-search "org.bluez.Error"
+                            (dbus-event-member-name event)))
+    (message "Bluetooth error: %s (%s)"
+             (nth 2 error)
+             (nth 1 error))))
+
 
 ;;;; command definitions
 
@@ -293,8 +302,10 @@ non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
       (bluetooth-lib-dbus-method (bluetooth--make-path :device) "ConnectProfile"
-                                 :device (cl-first uuid))
-    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Connect" :device)))
+                                 :device #'bluetooth--show-error
+                                 (cl-first uuid))
+    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Connect"
+                               :device #'bluetooth--show-error)))
 
 (defun bluetooth-disconnect (uuid)
   "Disconnect the Bluetooth device at point.
@@ -305,8 +316,10 @@ profiles."
   (interactive (bluetooth--choose-uuid))
   (if uuid
       (bluetooth-lib-dbus-method (bluetooth--make-path :device) "DisconnectProfile"
-                                 :device (cl-first uuid))
-    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Disconnect" :device)))
+                                 :device #'bluetooth--show-error
+                                 (cl-first uuid))
+    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Disconnect"
+                               :device #'bluetooth--show-error)))
 
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
@@ -334,9 +347,13 @@ implemented by BODY."
               (bluetooth--barf-if-uninitialized)
               (let ((,gmethod ,method)
                     (,gapi ,api))
-                (bluetooth-lib-dbus-method (bluetooth--make-path ,gapi)
-                                           ,gmethod
-                                           ,gapi)
+                (condition-case err
+                    (bluetooth-lib-dbus-method (bluetooth--make-path ,gapi)
+                                               ,gmethod
+                                               ,gapi
+                                               #'bluetooth--show-error)
+                  (dbus-error
+                   (message "Bluetooth: %s" (nth 2 err))))
                 ,@body)))))
 
 (bluetooth-defun-method "StartDiscovery" :adapter
@@ -366,9 +383,12 @@ The function will have DOCSTRING as its documentation."
               (bluetooth--barf-if-uninitialized)
               (let ((,gproperty ,property)
                     (,gapi ,api))
-                (bluetooth-lib-dbus-toggle (bluetooth--make-path ,gapi)
-                                           ,gproperty
-                                           ,gapi))))))
+                (condition-case err
+                    (bluetooth-lib-dbus-toggle (bluetooth--make-path ,gapi)
+                                               ,gproperty
+                                               ,gapi)
+                  (dbus-error
+                   (message "Bluetooth: %s" (nth 2 err)))))))))
 
 (bluetooth-defun-toggle "Blocked" :device
   "Mark Bluetooth device at point blocked.")
@@ -396,6 +416,7 @@ Calling this function will unpair device and host."
     (bluetooth-lib-dbus-method (bluetooth-device-property device "Adapter")
                                "RemoveDevice"
                                :adapter
+                               #'bluetooth--show-error
                                :object-path
                                (bluetooth-device-path device))))
 
@@ -659,6 +680,7 @@ If enabled, the device info display follows the selected device entry."
   ;; make sure D-Bus is (made) available
   (unless (dbus-ping bluetooth-bluez-bus bluetooth-service bluetooth-timeout)
     (error "The bluetooth service “%s” is not available" bluetooth-service))
+  (add-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (bluetooth-pa-register-agent)
   (bluetooth-plugin-init)
   (bluetooth-device-init #'bluetooth--print-list)

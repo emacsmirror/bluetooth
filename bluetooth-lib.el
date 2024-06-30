@@ -146,13 +146,13 @@ This function evaluates to an alist of attribute/value pairs."
     (when path
       (apply method bluetooth-bluez-bus bluetooth-service path interface args))))
 
-(defun bluetooth-lib-dbus-method (path method api &rest args)
+(defun bluetooth-lib-dbus-method (path method api &optional handler &rest args)
   "For PATH, invoke METHOD on D-Bus API, passing ARGS.
 The method is called asynchronously with the timeout specified by
 ‘bluetooth-timeout’."
   (apply #'bluetooth-lib--call-method path api
          #'dbus-call-method-asynchronously method
-         nil :timeout bluetooth-timeout args))
+         handler :timeout bluetooth-timeout args))
 
 (defun bluetooth-lib-dbus-sync-method (path method api &rest args)
   "For PATH, invoke METHOD on D-Bus API, passing ARGS.
@@ -164,7 +164,7 @@ The method is called synchronously."
 (defun bluetooth-lib-dbus-toggle (path property api)
   "For the D-Bus object PATH, toggle boolean PROPERTY on D-Bus API."
   (let ((value (bluetooth-lib--call-method path api
-                                          #'dbus-get-property property)))
+                                           #'dbus-get-property property)))
     (bluetooth-lib--call-method path api #'dbus-set-property property
                                 (not value))))
 
