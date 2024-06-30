@@ -253,6 +253,7 @@ update the status display accordingly."
          (bluetooth-lib-path (cl-first (bluetooth-lib-query-adapters))))))
 
 (defun bluetooth--show-error (&optional event error)
+  "Display a D-Bus error, if one occurred."
   (when (and event error
              (string-search "org.bluez.Error"
                             (dbus-event-member-name event)))
@@ -382,24 +383,24 @@ The function will have DOCSTRING as its documentation."
                    (message "Bluetooth: %s" (nth 2 err)))))))))
 
 (bluetooth-defun-toggle "Blocked" :device
-  "Mark Bluetooth device at point blocked.")
+  "Toggle the ‘blocked’ property of the Bluetooth device at point.")
 (bluetooth-defun-toggle "Trusted" :device
-  "Mark Bluetooth device at point trusted.")
+  "Toggle the ‘trusted’ property of the Bluetooth device at point.")
 (bluetooth-defun-toggle "Powered" :adapter
-  "Toggle power supply of adapter.")
+  "Toggle the power supply of the Bluetooth adapter.")
 (bluetooth-defun-toggle "Discoverable" :adapter
   "Toggle discoverable mode.")
 (bluetooth-defun-toggle "Pairable" :adapter
   "Toggle pairable mode.")
 
 (defun bluetooth-set-alias (name)
-  "Set alias of Bluetooth device at point to NAME."
+  "Set the alias of the Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): ")
   (bluetooth--barf-if-uninitialized)
   (bluetooth-lib-dbus-set (bluetooth--make-path :device) "Alias" name :device))
 
 (defun bluetooth-remove-device (&optional dev-id)
-  "Remove Bluetooth device at point or specified by DEV-ID.
+  "Remove the Bluetooth device at point or specified by DEV-ID.
 Calling this function will unpair device and host."
   (interactive)
   (bluetooth--barf-if-uninitialized)
@@ -412,7 +413,7 @@ Calling this function will unpair device and host."
                                (bluetooth-device-path device))))
 
 (defun bluetooth-end-of-list ()
-  "Move cursor to the last list element."
+  "Move point to the last list element."
   (interactive)
   (let ((column (current-column)))
     (goto-char (point-max))
@@ -421,7 +422,7 @@ Calling this function will unpair device and host."
                   (- column (current-column))))))
 
 (defun bluetooth-beginning-of-list ()
-  "Move cursor to the first list element."
+  "Move point to the first list element."
   (interactive)
   (let ((column (current-column)))
     (goto-char (point-min))
