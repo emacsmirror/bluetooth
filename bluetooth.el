@@ -528,7 +528,10 @@ If enabled, the device info display follows the selected device entry."
                 '(menu-item "Shutdown" bluetooth-shutdown
                             :help "Shutdown bluetooth mode"))
     (define-key map [menu-bar bluetooth follow]
-                '(menu-item "Toggle info" bluetooth-info-follow-mode
+                '(menu-item "Info follow mode" bluetooth-info-follow-mode
+                            :button (:toggle
+                                     . (and (boundp 'bluetooth-info-follow-mode)
+                                            bluetooth-info-follow-mode))
                             :help "Toggle device info follow mode"))
     
 
@@ -541,13 +544,29 @@ If enabled, the device info display follows the selected device entry."
                 '(menu-item "Start discovery" bluetooth-start-discovery
                             :help "Start discovery"))
     (define-key map [menu-bar bluetooth toggle-discoverable]
-                '(menu-item "Toggle discoverable" bluetooth-toggle-discoverable
+                '(menu-item "Discoverable"
+                            bluetooth-toggle-discoverable
+                            :button (:toggle
+                                     . (bluetooth-lib-adapter-property
+                                        (cl-first
+                                         (bluetooth-lib-query-adapters))
+                                        "Discoverable"))
                             :help "Toggle discoverable mode"))
     (define-key map [menu-bar bluetooth toggle-pairable]
-                '(menu-item "Toggle pairable" bluetooth-toggle-pairable
+                '(menu-item "Pairable" bluetooth-toggle-pairable
+                            :button (:toggle
+                                     . (bluetooth-lib-adapter-property
+                                        (cl-first
+                                         (bluetooth-lib-query-adapters))
+                                        "Pairable"))
                             :help "Toggle pairable mode"))
     (define-key map [menu-bar bluetooth toggle-powered]
-                '(menu-item "Toggle powered" bluetooth-toggle-powered
+                '(menu-item "Powered" bluetooth-toggle-powered
+                            :button (:toggle
+                                     . (bluetooth-lib-adapter-property
+                                        (cl-first
+                                         (bluetooth-lib-query-adapters))
+                                        "Powered"))
                             :help "Toggle power supply of adapter"))
     (define-key map [menu-bar bluetooth show-adapter-info]
                 '(menu-item "Show adapter info" bluetooth-show-adapter-info
