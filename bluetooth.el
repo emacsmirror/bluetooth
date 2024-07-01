@@ -241,7 +241,16 @@ update the status display accordingly."
     (mapc (lambda (elt)
             (cl-destructuring-bind (prop (value)) elt
               (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
-                (setf (bluetooth-property-active-p property) value))))
+                (setf (bluetooth-property-active-p property) value))
+              (when (string= "Discovering" prop)
+                (if value
+                    (unless bluetooth--update-timer
+                      (setf bluetooth--update-timer
+                            (run-at-time nil bluetooth-update-interval
+                                         #'bluetooth--update-print)))
+                  (when bluetooth--update-timer
+                    (cancel-timer bluetooth--update-timer)
+                    (setq bluetooth--update-timer nil))))))
           data)
     (force-mode-line-update)))
 
@@ -349,17 +358,10 @@ implemented by BODY."
                 ,@body)))))
 
 (bluetooth-defun-method "StartDiscovery" :adapter
-  "Start discovery mode."
-  (unless bluetooth--update-timer
-    (setq bluetooth--update-timer
-          (run-at-time nil bluetooth-update-interval
-                       #'bluetooth--update-print))))
+  "Start discovery mode.")
 
 (bluetooth-defun-method "StopDiscovery" :adapter
-  "Stop discovery mode."
-  (when bluetooth--update-timer
-    (cancel-timer bluetooth--update-timer)
-    (setq bluetooth--update-timer nil)))
+  "Stop discovery mode.")
 
 (bluetooth-defun-method "Pair" :device
   "Pair with device at point.")
@@ -707,12 +709,6 @@ scanning the bus, displaying device info etc."
     (cl-pushnew bluetooth--mode-info mode-line-process)
     (setq imenu-create-index-function #'bluetooth--create-imenu-index)
     (bluetooth--initialize-mode-info)
-    (setq bluetooth--update-timer
-          (if (bluetooth-lib-adapter-property (cl-first (bluetooth-lib-query-adapters))
-                                              "Discovering")
-              (run-at-time nil bluetooth-update-interval
-                           #'bluetooth--update-print)
-            nil))
     (setq bluetooth--adapter-signal
           (bluetooth-lib-register-props-signal nil
                                                (bluetooth-lib-path
