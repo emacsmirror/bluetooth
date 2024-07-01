@@ -61,6 +61,17 @@
   "Update interval of the device list view."
   :type '(natnum))
 
+(defcustom bluetooth-list-format
+  '(("Alias" 24) ("Paired" 8) ("Connected" 11) ("Address" 18)
+    ("Blocked" 9) ("Trusted" 9))
+  "The list view format for Bluetooth mode.
+Each element describes the header and the width of a table
+column.
+
+NOTE: the headers MUST correspond to Bluez device properties
+as they are used to gather the information from Bluez."
+  :type '(alist :key-type string :value-type (group natnum)))
+
 (defgroup bluetooth-faces nil
   "Faces used by Bluetooth mode."
   :group 'faces)
@@ -140,14 +151,6 @@ property and state.")
 
 ;;;; internal functions
 
-(defconst bluetooth--list-format
-  [("Alias" 24 t) ("Paired" 8 t) ("Connected" 11 t) ("Address" 18 t)
-   ("Blocked" 9 t) ("Trusted" 9 t)]
-  "The list view format for Bluetooth mode.
-
-NOTE: the strings MUST correspond to Bluez device properties
-as they are used to gather the information from Bluez.")
-
 ;; This function provides the list entries for the tabulated-list
 ;; view.  It is called from `tabulated-list-print'.
 (defun bluetooth--list-entries ()
@@ -164,7 +167,7 @@ as they are used to gather the information from Bluez.")
                                  (cond ((stringp value) value)
                                        ((null value) "no")
                                        (t "yes"))))
-                             (mapcar #'cl-first bluetooth--list-format)))
+                             (mapcar #'cl-first bluetooth-list-format)))
                dev-list))))
     dev-list))
 
@@ -543,7 +546,8 @@ If enabled, the device info display follows the selected device entry."
 (define-derived-mode bluetooth-mode tabulated-list-mode
   bluetooth--mode-name
   "Major mode for managing Bluetooth devices."
-  (setq tabulated-list-format bluetooth--list-format
+  (setq tabulated-list-format
+        (cl-map 'vector (lambda (x) (append x '(t))) bluetooth-list-format)
         tabulated-list-entries #'bluetooth--list-entries
         tabulated-list-padding 0
         tabulated-list-sort-key (cons "Alias" nil))
