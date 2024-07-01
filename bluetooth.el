@@ -304,12 +304,19 @@ When called with a prefix argument, ask for a profile and
 connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
-  (if uuid
-      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "ConnectProfile"
-                                 :device #'bluetooth--show-error
-                                 (cl-first uuid))
-    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Connect"
-                               :device #'bluetooth--show-error)))
+  (let ((alias (bluetooth-device-property
+                (bluetooth-device (tabulated-list-get-id))
+                "Alias")))
+    (if uuid
+        (progn
+          (bluetooth-lib-dbus-method (bluetooth--make-path :device) "ConnectProfile"
+                                     :device #'bluetooth--show-error
+                                     (cl-first uuid))
+          (message "Attempting to connect profile %s of %s"
+                   (cl-second (cl-second uuid)) alias))
+      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Connect"
+                                 :device #'bluetooth--show-error)
+      (message "Attempting to connect to %s" alias))))
 
 (defun bluetooth-disconnect (uuid)
   "Disconnect the Bluetooth device at point.
@@ -318,12 +325,19 @@ disconnect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
-  (if uuid
-      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "DisconnectProfile"
-                                 :device #'bluetooth--show-error
-                                 (cl-first uuid))
-    (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Disconnect"
-                               :device #'bluetooth--show-error)))
+  (let ((alias (bluetooth-device-property
+                (bluetooth-device (tabulated-list-get-id))
+                "Alias")))
+    (if uuid
+        (progn
+          (bluetooth-lib-dbus-method (bluetooth--make-path :device) "DisconnectProfile"
+                                     :device #'bluetooth--show-error
+                                     (cl-first uuid))
+          (message "Disconnecting profile %s of %s"
+                   (cl-second (cl-second uuid)) alias))
+      (bluetooth-lib-dbus-method (bluetooth--make-path :device) "Disconnect"
+                                 :device #'bluetooth--show-error)
+      (message "Disconnecting %s" alias))))
 
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
@@ -361,15 +375,21 @@ implemented by BODY."
                 ,@body)))))
 
 (bluetooth-defun-method "StartDiscovery" :adapter
-  "Start discovery mode.")
+  "Start discovery mode."
+  (message "Bluetooth discovery enabled"))
 
 (bluetooth-defun-method "StopDiscovery" :adapter
-  "Stop discovery mode.")
+  "Stop discovery mode."
+  (message "Bluetooth discovery disabled"))
 
 (bluetooth-defun-method "Pair" :device
-  "Pair with device at point.")
+  "Pair with device at point."
+  (let ((alias (bluetooth-device-property
+                (bluetooth-device (tabulated-list-get-id))
+                "Alias")))
+    (message "Attempting to pair with %s" alias)))
 
-(defmacro bluetooth-defun-toggle (property api docstring)
+(defmacro bluetooth-defun-toggle (property api docstring &rest body)
   "Make a function to toggle a PROPERTY of a device using API.
 The function will have DOCSTRING as its documentation."
   (declare (doc-string 3) (indent 2))
@@ -385,18 +405,43 @@ The function will have DOCSTRING as its documentation."
                                                ,gproperty
                                                ,gapi)
                   (dbus-error
-                   (message "Bluetooth: %s" (nth 2 err)))))))))
+                   (message "Bluetooth: %s" (nth 2 err))))
+                ,@body)))))
 
 (bluetooth-defun-toggle "Blocked" :device
-  "Toggle the ‘blocked’ property of the Bluetooth device at point.")
+  "Toggle the ‘blocked’ property of the Bluetooth device at point."
+  (let ((blocked (bluetooth-lib-query-property "Blocked"
+                                               (bluetooth--make-path :device)
+                                               :device)))
+    (message "Bluetooth device is %s" (if blocked "blocked" "not blocked"))))
 (bluetooth-defun-toggle "Trusted" :device
-  "Toggle the ‘trusted’ property of the Bluetooth device at point.")
+  "Toggle the ‘trusted’ property of the Bluetooth device at point."
+  (let ((trusted (bluetooth-lib-query-property "Trusted"
+                                               (bluetooth--make-path :device)
+                                               :device)))
+    (message "Bluetooth device is %s" (if trusted "trusted" "not trusted"))))
 (bluetooth-defun-toggle "Powered" :adapter
-  "Toggle the power supply of the Bluetooth adapter.")
+  "Toggle the power supply of the Bluetooth adapter."
+  (let ((powered (bluetooth-lib-query-property "Powered"
+                                               (bluetooth--make-path :adapter)
+                                               :adapter)))
+    (message "Bluetooth power supply %s" (if powered "enabled" "disabled"))))
 (bluetooth-defun-toggle "Discoverable" :adapter
-  "Toggle discoverable mode.")
+  "Toggle discoverable mode."
+  (let ((discoverable (bluetooth-lib-query-property "Discoverable"
+                                                    (bluetooth--make-path :adapter)
+                                                    :adapter)))
+    (message "Bluetooth host is %s" (if discoverable
+                                        "discoverable"
+                                      "not discoverable"))))
 (bluetooth-defun-toggle "Pairable" :adapter
-  "Toggle pairable mode.")
+  "Toggle pairable mode."
+  (let ((pairable (bluetooth-lib-query-property "Pairable"
+                                                (bluetooth--make-path :adapter)
+                                                :adapter)))
+    (message "Bluetooth host is %s" (if pairable
+                                        "pairable"
+                                      "not pairable"))))
 
 (defun bluetooth-set-alias (name)
   "Set the alias of the Bluetooth device at point to NAME."
@@ -410,6 +455,8 @@ Calling this function will unpair device and host."
   (interactive)
   (bluetooth--barf-if-uninitialized)
   (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
+    (message "Removing and unpairing %s"
+             (bluetooth-device-property device "Alias"))
     (bluetooth-lib-dbus-method (bluetooth-device-property device "Adapter")
                                "RemoveDevice"
                                :adapter
