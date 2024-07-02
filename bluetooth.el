@@ -146,7 +146,7 @@ property and state.")
 (defvar bluetooth--update-timer nil
   "The Bluetooth device table update timer.")
 
-(defvar bluetooth--follow-last-line nil)
+(defvar bluetooth--follow-last-id nil)
 
 
 ;;;; internal functions
@@ -489,11 +489,11 @@ If enabled, the device info display follows the selected device entry."
   (if (not bluetooth-info-follow-mode)
       (remove-hook 'post-command-hook 'bluetooth-info-follow-mode-hook t)
     (add-hook 'post-command-hook 'bluetooth-info-follow-mode-hook nil t)
-    (make-local-variable 'bluetooth--follow-last-line)))
+    (make-local-variable 'bluetooth--follow-last-id)))
 
 (defun bluetooth-info-follow-mode-hook ()
-  (unless (equal bluetooth--follow-last-line (line-number-at-pos))
-    (setf bluetooth--follow-last-line (line-number-at-pos))
+  (unless (equal bluetooth--follow-last-id (tabulated-list-get-id))
+    (setf bluetooth--follow-last-id (tabulated-list-get-id))
     (condition-case nil
         (bluetooth-show-device-info)
       (error t))))
