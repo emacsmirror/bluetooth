@@ -45,7 +45,8 @@
   "Insert battery info for DEVICE into buffer at point."
   (let ((level (bluetooth-battery-level device)))
     (when (numberp level)
-      (bluetooth-ins-line "Battery level" (number-to-string level)))))
+      (bluetooth-ins-line "Battery level"
+                          (format "%d %%" level)))))
 
 (defun bluetooth-battery--prop-change (device _property percentage interface)
   "Hook function to be called when DEVICE's PROPERTY changes."
