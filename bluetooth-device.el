@@ -175,12 +175,13 @@ any device properties have changed."
       (bluetooth-plugin-dev-update device))
     (setf (gethash dev-id bluetooth-device--info) device)))
 
-(defun bluetooth-device--update (dev-id device &optional callback)
-  "Update device info for id DEV-ID from data in DEVICE and CALLBACK.
+(defun bluetooth-device--update (device &optional callback)
+  "Update device info for DEVICE, maybe installing CALLBACK.
 The CALLBACK function is installed only if no signal handler was
 installed before and is otherwise ignored."
-  (setf (bluetooth-device-properties (bluetooth-device dev-id))
-        (bluetooth-device-properties device))
+  (setf (bluetooth-device-properties device)
+        (bluetooth-lib-query-properties (bluetooth-device-path device)
+                                        :device))
   (when (and (bluetooth-device-property device "Paired")
              (null (bluetooth-device-signal-handler device)))
     (setf (bluetooth-device-signal-handler device)
@@ -217,7 +218,7 @@ devices that have newly connected."
                              :test #'string=))
     (mapc (lambda (dev-id)
             (if-let (device (bluetooth-device dev-id))
-                (bluetooth-device--update dev-id device callback)
+                (bluetooth-device--update device callback)
               (bluetooth-device--add dev-id adapter callback)))
           queried-devices)))
 
