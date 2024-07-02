@@ -462,7 +462,8 @@ Calling this function will unpair device and host."
                                :adapter
                                #'bluetooth--show-error
                                :object-path
-                               (bluetooth-device-path device))))
+                               (bluetooth-device-path device))
+    (run-with-timer bluetooth-update-interval nil #'bluetooth--update-print)))
 
 (defun bluetooth-end-of-list ()
   "Move point to the last list element."
