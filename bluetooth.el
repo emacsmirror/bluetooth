@@ -257,10 +257,14 @@ update the status display accordingly."
           data)
     (force-mode-line-update)))
 
+(defun bluetooth-devatpt ()
+  "Return the device at point."
+  (bluetooth-device (tabulated-list-get-id)))
+
 (defun bluetooth--make-path (api)
   "Return the path of the currently selected device."
   (cond ((eq :device api)
-         (bluetooth-device-path (bluetooth-device (tabulated-list-get-id))))
+         (bluetooth-device-path (bluetooth-devatpt)))
         ((eq :adapter api)
          (bluetooth-lib-path (cl-first (bluetooth-lib-query-adapters))))))
 
@@ -280,7 +284,7 @@ update the status display accordingly."
   "Ask for a UUID and return it in a form suitable for ‘interactive’."
   (bluetooth--barf-if-uninitialized)
   (if current-prefix-arg
-      (let* ((device (bluetooth-device (tabulated-list-get-id)))
+      (let* ((device (bluetooth-devatpt))
              (uuids (bluetooth-uuid-interpret
                      (bluetooth-device-property device "UUIDs")))
              (profile (completing-read "Profile: "
@@ -305,7 +309,7 @@ connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
   (interactive (bluetooth--choose-uuid))
   (let ((alias (bluetooth-device-property
-                (bluetooth-device (tabulated-list-get-id))
+                (bluetooth-devatpt)
                 "Alias")))
     (if uuid
         (progn
@@ -326,7 +330,7 @@ non-interactively with UUID set to nil, disconnect all
 profiles."
   (interactive (bluetooth--choose-uuid))
   (let ((alias (bluetooth-device-property
-                (bluetooth-device (tabulated-list-get-id))
+                (bluetooth-devatpt)
                 "Alias")))
     (if uuid
         (progn
@@ -385,7 +389,7 @@ implemented by BODY."
 (bluetooth-defun-method "Pair" :device
   "Pair with device at point."
   (let ((alias (bluetooth-device-property
-                (bluetooth-device (tabulated-list-get-id))
+                (bluetooth-devatpt)
                 "Alias")))
     (message "Attempting to pair with %s" alias)))
 
@@ -699,7 +703,7 @@ If enabled, the device info display follows the selected device entry."
   "Show detailed information on the device at point."
   (interactive)
   (bluetooth--barf-if-uninitialized)
-  (when-let (device (bluetooth-device (tabulated-list-get-id)))
+  (when-let (device (bluetooth-devatpt))
     (with-current-buffer-window bluetooth-info-buffer-name nil nil
       (let ((props (bluetooth-device-properties device)))
         (bluetooth--ins-heading "Bluetooth device info\n\n")
