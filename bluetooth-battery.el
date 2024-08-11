@@ -43,10 +43,10 @@
 
 (defun bluetooth-battery--info (device)
   "Insert battery info for DEVICE into buffer at point."
-  (let ((level (bluetooth-battery-level device)))
-    (when (numberp level)
-      (bluetooth-ins-line "Battery level"
-                          (format "%d %%" level)))))
+  (let ((percentage (bluetooth-battery-percentage device)))
+    (when (numberp percentage)
+      (bluetooth-ins-line "Battery percentage"
+                          (format "%d%%" percentage)))))
 
 (defun bluetooth-battery--prop-change (device _property percentage interface)
   "Hook function to be called when DEVICE's PROPERTY changes."
@@ -56,7 +56,7 @@
                  bluetooth-battery-display-warning
                  (<= percentage bluetooth-battery-warning-level))
         (delay-warning 'bluetooth-battery
-                       (format "Battery percentage of %s is low (%d %%)"
+                       (format "Battery percentage of %s is low (%d%%)"
                                alias percentage))))))
 
 (defun bluetooth-battery--new (device)
@@ -65,19 +65,19 @@
                                   "Percentage"
                                   #'bluetooth-battery--prop-change))
 
-(defun bluetooth-battery-level (device)
+(defun bluetooth-battery-percentage (device)
   "Return the battery level of DEVICE."
   (bluetooth-lib-query-property "Percentage"
                                 (bluetooth-device-path device)
                                 :battery))
 
-(defun bluetooth-battery-levels ()
+(defun bluetooth-battery-percentages ()
   "Return a list of devices by ID, aliases and their battery levels."
   (let (result)
     (bluetooth-device-map (lambda (id dev)
                             (push (list id
                                         (bluetooth-device-property dev "Alias")
-                                        (bluetooth-battery-level dev))
+                                        (bluetooth-battery-percentage dev))
                                   result))
                           #'bluetooth-device-implements-p
                           :battery)
