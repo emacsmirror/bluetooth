@@ -14,6 +14,8 @@
   - setting adapter properties (powered, discoverable, pairable)
   - showing device information (alias, address, RSSI, class, services)
   - Imenu integration
+  - a battery plugin that will show battery percentage and can issue a low
+    battery warning
 
   The implementation is based on the Bluez DBus interface (see
   [[https://www.bluez.org]]).
@@ -72,8 +74,8 @@
     
 ** Plugins
 
-   Bluetooth mode offers an experimental plugin API, see =bluetooth-plugin.el=
-   and =bluetooth-battery.el= for an example.  ‘Experimental’ means that the API
+   Bluetooth mode offers an experimental plugin API, see ~bluetooth-plugin.el~
+   and ~bluetooth-battery.el~ for an example.  ‘Experimental’ means that the API
    will likely change a few times.  But don't let that discourage you from
    writing a plugin, as any feedback from plugin authors will help improve and
    eventually stabilize the API.
@@ -83,9 +85,25 @@
 
     The battery plugin shows the battery information for devices that support
     the =org.bluez.Battery1= interface.  It will also warn about low battery
-    levels if =bluetooth-battery-display-warning= is =t= and according to the
+    levels if =bluetooth-battery-display-warning= is t and according to the
     level chosen with =bluetooth-battery-warning-level=.
 
     Note that some devices with batteries may not implement this interface.
     This is sometimes true for HID devices that expose battery information
     through the HID interface, which is not used by =bluetooth-battery.el=.
+
+    
+** News
+   
+*** Bluetooth mode 0.4
+    This version
+    - reorganized the sources into several files
+    - added a plugin mechanism
+    - added battery plugin
+    - added follow mode
+    - added initialization function so Bluetooth mode can be initialized
+      without bringing up the device list view
+    - added error messages and command feedback
+    - made list view customizable
+    - cleaned up the code and made it more useful to other packages/plugins
+      
