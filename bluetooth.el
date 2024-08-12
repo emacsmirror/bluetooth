@@ -307,7 +307,7 @@ update the status display accordingly."
 When called with a prefix argument, ask for a profile and
 connect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, connect to all profiles."
-  (interactive (bluetooth--choose-uuid))
+  (interactive (bluetooth--choose-uuid) bluetooth-mode)
   (let ((alias (bluetooth-device-property
                 (bluetooth-devatpt)
                 "Alias")))
@@ -328,7 +328,7 @@ When called with a prefix argument, ask for a profile and
 disconnect only this profile.  Otherwise, or when called
 non-interactively with UUID set to nil, disconnect all
 profiles."
-  (interactive (bluetooth--choose-uuid))
+  (interactive (bluetooth--choose-uuid) bluetooth-mode)
   (let ((alias (bluetooth-device-property
                 (bluetooth-devatpt)
                 "Alias")))
@@ -345,14 +345,14 @@ profiles."
 
 (defun bluetooth-connect-profile ()
   "Ask for a Bluetooth profile and connect the device at point to it."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (let ((prefix-arg (list 4)))
     (command-execute #'bluetooth-connect)))
 
 (defun bluetooth-disconnect-profile ()
   "Ask for a Bluetooth profile and disconnect the device at point from it."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (let ((prefix-arg (list 4)))
     (command-execute #'bluetooth-disconnect)))
@@ -365,7 +365,7 @@ implemented by BODY."
   (let ((name (bluetooth-lib-make-function-name method)))
     (cl-with-gensyms (gmethod gapi)
       `(defun ,(intern name) () ,docstring
-              (interactive)
+              (interactive nil bluetooth-mode)
               (bluetooth--barf-if-uninitialized)
               (let ((,gmethod ,method)
                     (,gapi ,api))
@@ -400,7 +400,7 @@ The function will have DOCSTRING as its documentation."
   (let ((name (bluetooth-lib-make-function-name property "-toggle")))
     (cl-with-gensyms (gproperty gapi)
       `(defun ,(intern name) () ,docstring
-              (interactive)
+              (interactive nil bluetooth-mode)
               (bluetooth--barf-if-uninitialized)
               (let ((,gproperty ,property)
                     (,gapi ,api))
@@ -449,14 +449,14 @@ The function will have DOCSTRING as its documentation."
 
 (defun bluetooth-set-alias (name)
   "Set the alias of the Bluetooth device at point to NAME."
-  (interactive "MAlias (empty to reset): ")
+  (interactive "MAlias (empty to reset): " bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (bluetooth-lib-dbus-set (bluetooth--make-path :device) "Alias" name :device))
 
 (defun bluetooth-remove-device (&optional dev-id)
   "Remove the Bluetooth device at point or specified by DEV-ID.
 Calling this function will unpair device and host."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
     (message "Removing and unpairing %s"
@@ -471,7 +471,7 @@ Calling this function will unpair device and host."
 
 (defun bluetooth-end-of-list ()
   "Move point to the last list element."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (let ((column (current-column)))
     (goto-char (point-max))
     (forward-line -1)
@@ -480,7 +480,7 @@ Calling this function will unpair device and host."
 
 (defun bluetooth-beginning-of-list ()
   "Move point to the first list element."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (let ((column (current-column)))
     (goto-char (point-min))
     (goto-char (+ (point)
@@ -701,7 +701,7 @@ If enabled, the device info display follows the selected device entry."
 
 (defun bluetooth-show-device-info ()
   "Show detailed information on the device at point."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (when-let (device (bluetooth-devatpt))
     (with-current-buffer-window bluetooth-info-buffer-name nil nil
@@ -723,7 +723,7 @@ If enabled, the device info display follows the selected device entry."
 
 (defun bluetooth-show-adapter-info ()
   "Show detailed information on the (first) Bluetooth adapter."
-  (interactive)
+  (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (let* ((adapter (cl-first (bluetooth-lib-query-adapters)))
          (props (bluetooth-lib-adapter-properties adapter)))
@@ -797,7 +797,7 @@ scanning the bus, displaying device info etc."
 This command will unregister any agents and plugins and free
 D-Bus resources.  If called interactively, it will ask for
 confirmation before shutting down."
-  (interactive "p")
+  (interactive "p" bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
   (let ((do-shutdown (if (and arg
                               (not (y-or-n-p "Shutdown Bluetooth mode?")))
