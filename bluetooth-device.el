@@ -137,10 +137,11 @@ DEVICE's property functions.  See ‘bluetooth-device-add-prop-hook’."
                             (cl-destructuring-bind (key (value)) prop
                               (setf (bluetooth-device-property dev key)
                                     value)
-                              (when (string= "ServicesResolved" key)
-                                (if value
-                                    (bluetooth-plugin-dev-update dev)
-                                  (bluetooth-plugin-dev-remove dev)))
+                              (when (or (string= "Connected" key)
+                                        (string= "ServicesResolved" key))
+                                    (if value
+                                        (bluetooth-plugin-dev-update dev)
+                                      (bluetooth-plugin-dev-remove dev)))
                               (bluetooth-device--call-prop-functions
                                device key value interface)))
                           changed-props)
