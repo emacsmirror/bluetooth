@@ -421,7 +421,6 @@ This function only uses the first adapter reported by Bluez."
 	(mapc #'bluetooth--device-remove
 		  (hash-table-keys bluetooth--device-info))
 	(setq bluetooth--device-info nil)
-	(remove-hook 'tabulated-list-revert-hook #'bluetooth--update-all)
 	(cancel-timer bluetooth--update-timer)
 	(setq bluetooth--update-timer nil)))
 
@@ -4671,7 +4670,7 @@ profiles."
 		tabulated-list-entries #'bluetooth--list-entries
 		tabulated-list-padding 0
 		tabulated-list-sort-key (cons "Alias" nil))
-  (add-hook 'tabulated-list-revert-hook #'bluetooth--update-all)
+  (add-hook 'tabulated-list-revert-hook #'bluetooth--update-all nil 'local)
   (tabulated-list-init-header)
   (tabulated-list-print)
   (hl-line-mode))
