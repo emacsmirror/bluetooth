@@ -215,7 +215,6 @@ This function only uses the first adapter reported by Bluez."
   "Clean up when mode buffer is killed."
   (when (dbus-unregister-object bluetooth--adapter-signal)
     (setq bluetooth--adapter-signal nil))
-  (remove-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
   (remove-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (when bluetooth--update-timer
     (cancel-timer bluetooth--update-timer)
@@ -622,7 +621,8 @@ If enabled, the device info display follows the selected device entry."
         tabulated-list-entries #'bluetooth--list-entries
         tabulated-list-padding 0
         tabulated-list-sort-key (cons "Alias" nil))
-  (add-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback)
+  (add-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback
+			nil 'local)
   (tabulated-list-init-header)
   (tabulated-list-print)
   (hl-line-mode))
