@@ -27,12 +27,13 @@
 (require 'cl-lib)
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
-
-(declare-function bluetooth-battery-init "bluetooth-battery")
+(require 'transient)
 
 (defgroup bluetooth-plugin nil
   "Bluetooth plugins."
   :group 'bluetooth)
+
+(declare-function bluetooth-battery-init "bluetooth-battery")
 
 (defcustom bluetooth-plugin-autoload (list #'bluetooth-battery-init)
   "List of init functions of auto-loaded plugins.
@@ -56,44 +57,43 @@ following keys and values:
 - dev-ids: a list of device IDs that the plugin handles.")
 
 (defun bluetooth-plugin-register (api new-fn &optional info-fn
-                                      cleanup-fn remove-fn _transient)
+                                      cleanup-fn remove-fn)
   "Register a plugin for API.
-NEW-FN will be called for every object implementing API, either
-when the device is already connected, or when a suitable new
-device connects.
+NEW-FN will be called for every object implementing API, either when the
+device is already connected, or when a suitable new device connects.
 
-The optional function INFO-FN is called when device information
-is printed from the device view.  It takes a ‘bluetooth-device’
-as argument and should call ‘bluetooth-ins-line’ to insert its
-information.
+The optional function INFO-FN is called when device information is
+printed from the device view.  It takes a ‘bluetooth-device’ as argument
+and should call ‘bluetooth-ins-line’ to insert its information.
 
 The optional function REMOVE-FN is called when a device is
-removed (unpaired) or disconnects.  It takes a ‘bluetooth-device’
-as argument.
+removed (unpaired) or disconnects.  It takes a ‘bluetooth-device’ as
+argument.
 
 The optional function CLEANUP-FN is called when a plugin is
 unregistered.
 
-The optional TRANSIENT can be provided as a device menu to
-interact with the device.
-
-The passed functions may be called before this function returns,
-so the plugin should be set up and ready to go when this function
-is called."
+The passed functions may be called before this function returns, so the
+plugin should be set up and ready to go before calling it.  If the plugin
+registration was successful, this function evaluates to t."
   (unless (hash-table-p bluetooth-plugin--objects)
     (setf bluetooth-plugin--objects (make-hash-table :test #'eq)))
   (if (gethash api bluetooth-plugin--objects)
-      (message "A bluetooth plugin is already registered for interface %s"
-               (bluetooth-lib-interface api))
+      (progn
+        (message "A bluetooth plugin is already registered for interface %s"
+                 (bluetooth-lib-interface api))
+        nil)
     (cl-mapc (lambda (key fn)
                (when fn
                  (setf (plist-get (gethash api bluetooth-plugin--objects) key)
                        fn)))
              (list :new-fn :info-fn :cleanup-fn :remove-fn)
              (list new-fn info-fn cleanup-fn remove-fn))
-    ;; TODO add transient
-    )
-  nil)
+    (bluetooth-device-map (lambda (_id device)
+                            (bluetooth-plugin-dev-update device))
+                          #'bluetooth-device-implements-p
+                          api)
+    t))
 
 (defun bluetooth-plugin-unregister (api)
   "Unregister the plugin for API."
@@ -149,13 +149,14 @@ current buffer."
                    (funcall (plist-get entry :info-fn) device)))
                bluetooth-plugin--objects))))
 
-(defun bluetooth-plugin-init ()
+(defun bluetooth-plugin-init (menu)
   "Initialize the bluetooth plugin interface.
+The Bluetooth mode menu must be passed in MENU.
 Initialize all the auto-load plugins configured in
 ‘bluetooth-plugin-autoload’.  The init functions should call
 ‘bluetooth-plugin-register’."
   (dolist (init-fn bluetooth-plugin-autoload)
-    (and (fboundp init-fn) (funcall init-fn))))
+    (and (fboundp init-fn) (funcall init-fn menu))))
 
 (provide 'bluetooth-plugin)
 ;;; bluetooth-plugin.el ends here

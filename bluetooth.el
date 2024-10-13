@@ -8,7 +8,7 @@
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
 ;; Version: 0.4
-;; Package-Requires: ((emacs "25.1") (dash "2.18.1"))
+;; Package-Requires: ((emacs "25.1") (dash "2.18.1") (compat "30.0.0.0"))
 ;; Keywords: hardware
 ;; URL: https://gitlab.com/rstocker/emacs-bluetooth
 
@@ -43,12 +43,14 @@
 (require 'let-alist)
 (require 'dash)
 (require 'rx)
+(require 'compat)
 (eval-when-compile (require 'subr-x))
 (require 'bluetooth-pa)
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
 (require 'bluetooth-uuid)
 (require 'bluetooth-plugin)
+(require 'transient)
 
 
 ;;;; customization
@@ -417,6 +419,7 @@ The function will have DOCSTRING as its documentation."
                                                (bluetooth--make-path :device)
                                                :device)))
     (message "Bluetooth device is %s" (if blocked "blocked" "not blocked"))))
+
 (bluetooth-defun-toggle "Trusted" :device
   "Toggle the ‘trusted’ property of the Bluetooth device at point."
   (let ((trusted (bluetooth-lib-query-property "Trusted"
@@ -445,7 +448,6 @@ The function will have DOCSTRING as its documentation."
     (message "Bluetooth host is %s" (if pairable
                                         "pairable"
                                       "not pairable"))))
-
 (defun bluetooth-set-alias (name)
   "Set the alias of the Bluetooth device at point to NAME."
   (interactive "MAlias (empty to reset): " bluetooth-mode)
@@ -501,6 +503,26 @@ If enabled, the device info display follows the selected device entry."
         (bluetooth-show-device-info)
       (error t))))
 
+(transient-define-prefix bluetooth-menu ()
+  "Bluetooth mode menu."
+  ["Bluetooth menu\n"
+   ["Device"
+    ("c" "connect" bluetooth-connect)
+    ("d" "disconnect" bluetooth-disconnect)
+    ("b" "toggle blocked" bluetooth-toggle-blocked)
+    ("t" "toggle trusted" bluetooth-toggle-trusted)
+    ("a" "set alias" bluetooth-set-alias)
+    ("P" "pair" bluetooth-pair)
+    ("k" "remove device" bluetooth-remove-device)
+    ("i" "show device information" bluetooth-show-device-info)]
+   ["Adapter"
+    ("r" "start discovery" bluetooth-start-discovery)
+    ("R" "stop discovery" bluetooth-stop-discovery)
+    ("s" "toggle power supply" bluetooth-toggle-powered)
+    ("D" "toggle discoverable" bluetooth-toggle-discoverable)
+    ("x" "toggle pairable" bluetooth-toggle-pairable)
+    ("A" "show adapter information" bluetooth-show-adapter-info)]])
+
 
 ;;;; keymap and menu
 
@@ -525,6 +547,7 @@ If enabled, the device info display follows the selected device entry."
     (define-key map [?<] #'bluetooth-beginning-of-list)
     (define-key map [?>] #'bluetooth-end-of-list)
     (define-key map [?F] #'bluetooth-info-follow-mode)
+    (define-key map [?M] #'bluetooth-menu)
 
     (define-key map [menu-bar bluetooth]
                 (cons "Bluetooth" (make-sparse-keymap "Bluetooth")))
@@ -751,7 +774,7 @@ If enabled, the device info display follows the selected device entry."
     (error "The bluetooth service “%s” is not available" bluetooth-service))
   (add-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (bluetooth-pa-register-agent)
-  (bluetooth-plugin-init)
+  (bluetooth-plugin-init 'bluetooth-menu)
   (bluetooth-device-init #'bluetooth--print-list)
   (setf bluetooth--initialized t))
 
