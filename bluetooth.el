@@ -505,29 +505,9 @@ If enabled, the device info display follows the selected device entry."
         (bluetooth-show-device-info)
       (error t))))
 
-(transient-define-prefix bluetooth-menu ()
-  "Bluetooth mode menu."
-  ["Bluetooth menu\n"
-   ["Device"
-    ("c" "connect" bluetooth-connect)
-    ("d" "disconnect" bluetooth-disconnect)
-    ("b" "toggle blocked" bluetooth-toggle-blocked)
-    ("t" "toggle trusted" bluetooth-toggle-trusted)
-    ("a" "set alias" bluetooth-set-alias)
-    ("P" "pair" bluetooth-pair)
-    ("k" "remove device" bluetooth-remove-device)
-    ("i" "show device information" bluetooth-show-device-info)]
-   ["Adapter"
-    ("r" "start discovery" bluetooth-start-discovery)
-    ("R" "stop discovery" bluetooth-stop-discovery)
-    ("s" "toggle power supply" bluetooth-toggle-powered)
-    ("D" "toggle discoverable" bluetooth-toggle-discoverable)
-    ("x" "toggle pairable" bluetooth-toggle-pairable)
-    ("A" "show adapter information" bluetooth-show-adapter-info)]])
-
 
 ;;;; keymap and menu
-
+(declare-function bluetooth-menu "bluetooth.el")
 (defvar bluetooth-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
@@ -776,6 +756,25 @@ If enabled, the device info display follows the selected device entry."
     (error "The bluetooth service “%s” is not available" bluetooth-service))
   (add-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (bluetooth-pa-register-agent)
+  (transient-define-prefix bluetooth-menu ()
+    "Bluetooth mode menu."
+    ["Bluetooth menu\n"
+     ["Device"
+      ("c" "connect" bluetooth-connect)
+      ("d" "disconnect" bluetooth-disconnect)
+      ("b" "toggle blocked" bluetooth-toggle-blocked)
+      ("t" "toggle trusted" bluetooth-toggle-trusted)
+      ("a" "set alias" bluetooth-set-alias)
+      ("P" "pair" bluetooth-pair)
+      ("k" "remove device" bluetooth-remove-device)
+      ("i" "show device information" bluetooth-show-device-info)]
+     ["Adapter"
+      ("r" "start discovery" bluetooth-start-discovery)
+      ("R" "stop discovery" bluetooth-stop-discovery)
+      ("s" "toggle power supply" bluetooth-toggle-powered)
+      ("D" "toggle discoverable" bluetooth-toggle-discoverable)
+      ("x" "toggle pairable" bluetooth-toggle-pairable)
+      ("A" "show adapter information" bluetooth-show-adapter-info)]])
   (bluetooth-plugin-init 'bluetooth-menu)
   (bluetooth-device-init #'bluetooth--print-list)
   (setf bluetooth--initialized t))
