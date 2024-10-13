@@ -248,12 +248,13 @@ The function FN takes the device id and the corresponding
 The argument FILTER-FN, when supplied, must be a predicate that
 takes a ‘bluetooth-device’ as its first argument and ARGS as the
 rest."
-  (maphash (lambda (id dev)
-             (if filter-fn
-                 (when (apply filter-fn dev args)
-                   (funcall fn id dev))
-               (funcall fn id dev)))
-           bluetooth-device--info))
+  (when (hash-table-p bluetooth-device--info)
+    (maphash (lambda (id dev)
+               (if filter-fn
+                   (when (apply filter-fn dev args)
+                     (funcall fn id dev))
+                 (funcall fn id dev)))
+             bluetooth-device--info)))
 
 (provide 'bluetooth-device)
 ;;; bluetooth-device.el ends here
