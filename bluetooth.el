@@ -260,7 +260,9 @@ update the status display accordingly."
 
 (defun bluetooth-devatpt ()
   "Return the device at point."
-  (bluetooth-device (tabulated-list-get-id)))
+  (when (and bluetooth--initialized
+             (string= (buffer-name) bluetooth-buffer-name))
+    (bluetooth-device (tabulated-list-get-id))))
 
 (defun bluetooth--make-path (api)
   "Return the path of the currently selected device."
