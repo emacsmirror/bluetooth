@@ -37,6 +37,7 @@
 (require 'bluetooth-lib)
 (require 'bluetooth-device)
 (require 'bluetooth-plugin)
+(require 'transient)
 
 (defgroup bluetooth-battery nil
   "Bluetooth battery plugin."
@@ -49,6 +50,27 @@
 (defcustom bluetooth-battery-display-warning t
   "Whether a low-battery warning should be displayed."
   :type '(boolean))
+
+(defcustom bluetooth-battery-menu-key "b"
+  "Key to use for the battery plugin sub-menu."
+  :type '(string))
+
+(defvar bluetooth-battery--devices nil)
+
+(defvar bluetooth-battery--loaded nil)
+
+(defun bluetooth-battery--known-dev-p ()
+  (and bluetooth-battery--loaded
+       (cl-member (bluetooth-devatpt) bluetooth-battery--devices)))
+
+(transient-define-prefix bluetooth-battery--menu ()
+  "The Bluetooth battery plugin menu."
+  ["Battery menu"
+   (:info (lambda ()
+            (let ((dev (bluetooth-devatpt)))
+              (format "Battery percentage of %s: %d%%"
+                      (bluetooth-device-property dev "Alias")
+                      (bluetooth-battery-percentage dev)))))])
 
 (defun bluetooth-battery--info (device)
   "Insert battery info for DEVICE into buffer at point."
@@ -80,7 +102,17 @@
   "Notify bluetooth-battery about new DEVICE."
   (bluetooth-device-add-prop-hook device
                                   "Percentage"
-                                  #'bluetooth-battery--prop-change))
+                                  #'bluetooth-battery--prop-change)
+  (cl-pushnew device bluetooth-battery--devices))
+
+(defun bluetooth-battery--remove (device)
+  "Stop providing battery info for DEVICE."
+  (setf bluetooth-battery--devices
+        (cl-remove device bluetooth-battery--devices)))
+
+(defun bluetooth-battery--cleanup ()
+  "Cleanup the battery plugin."
+  (setq bluetooth-battery--loaded nil))
 
 (defun bluetooth-battery-percentage (device)
   "Return the battery level of DEVICE."
@@ -101,8 +133,9 @@
     result))
 
 ;;;###autoload
-(defun bluetooth-battery-init ()
+(defun bluetooth-battery-init (menu)
   "Initialize the bluetooth-battery plugin.
+The Bluetooth mode menu must be passed in MENU.
 
 This plugin shows a device's battery level in the device
 information view of Bluetooth mode, if the device implements the
@@ -113,9 +146,17 @@ inclusive level, so the warning will be displayed if the battery
 percentage is at this level or lower."
   ;; Everything must be set up before calling the register function, because
   ;; it will likely call ‘bluetooth-battery--new’ right away.
-  (bluetooth-plugin-register :battery
-                             #'bluetooth-battery--new
-                             #'bluetooth-battery--info))
+  (setf bluetooth-battery--loaded
+        (bluetooth-plugin-register :battery
+                                   #'bluetooth-battery--new
+                                   #'bluetooth-battery--info
+                                   #'bluetooth-battery--cleanup
+                                   #'bluetooth-battery--remove))
+  (transient-append-suffix menu '(0 0 -1)
+    (list bluetooth-battery-menu-key
+          "Battery menu"
+          'bluetooth-battery--menu
+          :if 'bluetooth-battery--known-dev-p)))
 
 (provide 'bluetooth-battery)
 ;;; bluetooth-battery.el ends here
