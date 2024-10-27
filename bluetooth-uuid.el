@@ -966,7 +966,7 @@
 
 (defun bluetooth-uuid-parse-service-class-uuid (uuid)
   "Parse UUID and return short and long service class names."
-  (when-let ((service-id (bluetooth-uuid-strip uuid)))
+  (when-let* ((service-id (bluetooth-uuid-strip uuid)))
     (or (gethash service-id
                  (cl-rest (--first (>= service-id (cl-first it))
                                    bluetooth-uuid--uuids)))

@@ -117,7 +117,7 @@ INTERFACE: the D-Bus interface name of the property."
 
 (defun bluetooth-device--call-prop-functions (device property &rest args)
   "Call all of DEVICE's PROPERTY functions with ARGS."
-  (when-let ((functions (bluetooth-device--prop-fns device property)))
+  (when-let* ((functions (bluetooth-device--prop-fns device property)))
     (dolist (fn functions)
       (when (fboundp fn)
         (apply fn device property args)))))
@@ -218,7 +218,7 @@ devices that have newly connected."
                              queried-devices
                              :test #'string=))
     (mapc (lambda (dev-id)
-            (if-let (device (bluetooth-device dev-id))
+            (if-let* ((device (bluetooth-device dev-id)))
                 (bluetooth-device--update device callback)
               (bluetooth-device--add dev-id adapter callback)))
           queried-devices)))
@@ -233,11 +233,11 @@ devices that have newly connected."
   "Indicate whether DEVICE offers API.
 Returns the corresponding D-Bus interface name or nil, if not
 implemented by device."
-  (when-let ((res (member (bluetooth-lib-interface api)
-                          (dbus-introspect-get-interface-names bluetooth-bluez-bus
-                                                               bluetooth-service
-                                                               (bluetooth-device-path
-                                                                device)))))
+  (when-let* ((res (member (bluetooth-lib-interface api)
+                           (dbus-introspect-get-interface-names bluetooth-bluez-bus
+                                                                bluetooth-service
+                                                                (bluetooth-device-path
+                                                                 device)))))
     (car res)))
 
 (defun bluetooth-device-map (fn &optional filter-fn &rest args)

@@ -97,9 +97,9 @@ registration was successful, this function evaluates to t."
 
 (defun bluetooth-plugin-unregister (api)
   "Unregister the plugin for API."
-  (when-let (entry (and (hash-table-p bluetooth-plugin--objects)
-                        (gethash api bluetooth-plugin--objects)))
-    (when-let ((cleanup-fn (plist-get entry :cleanup-fn)))
+  (when-let* ((entry (and (hash-table-p bluetooth-plugin--objects)
+                          (gethash api bluetooth-plugin--objects))))
+    (when-let* ((cleanup-fn (plist-get entry :cleanup-fn)))
       (funcall cleanup-fn))
     (remhash api bluetooth-plugin--objects)))
 
@@ -116,7 +116,7 @@ registration was successful, this function evaluates to t."
     (let ((dev-id (bluetooth-device-id device)))
       (maphash (lambda (_api entry)
                  (when (member dev-id (plist-get entry :dev-ids))
-                   (when-let ((remove-fn (plist-get entry :remove-fn)))
+                   (when-let* ((remove-fn (plist-get entry :remove-fn)))
                      (funcall remove-fn device))
                    (setf (plist-get entry :dev-ids)
                          (cl-remove dev-id (plist-get entry :dev-ids)))))
@@ -128,8 +128,8 @@ Obtain a list of interfaces provided by DEVICE and notify plugins registered
 for these interfaces of the newly added device."
   (when (hash-table-p bluetooth-plugin--objects)
     (cl-labels ((notify (api entry)
-                  (when-let ((interface (bluetooth-device-implements-p device api)))
-                    (when-let ((new-fn (plist-get entry :new-fn)))
+                  (when-let* ((interface (bluetooth-device-implements-p device api)))
+                    (when-let* ((new-fn (plist-get entry :new-fn)))
                       (cl-pushnew (bluetooth-device-id device)
                                   (plist-get (gethash api bluetooth-plugin--objects)
                                              :dev-ids))
@@ -142,8 +142,8 @@ This function calls the info-fn provided at plugin registration.  This
 function is expected to call ‘insert’ to insert its information into the
 current buffer."
   (when (hash-table-p bluetooth-plugin--objects)
-    (when-let ((dev-id (and (bluetooth-device-property device "Connected")
-                            (bluetooth-device-id device))))
+    (when-let* ((dev-id (and (bluetooth-device-property device "Connected")
+                             (bluetooth-device-id device))))
       (maphash (lambda (_api entry)
                  (when (member dev-id (plist-get entry :dev-ids))
                    (funcall (plist-get entry :info-fn) device)))

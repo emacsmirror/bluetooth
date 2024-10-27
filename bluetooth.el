@@ -244,7 +244,7 @@ update the status display accordingly."
   (when (string= interface (bluetooth-lib-interface :adapter))
     (mapc (lambda (elt)
             (cl-destructuring-bind (prop (value)) elt
-              (when-let (property (cl-rest (assoc prop bluetooth--mode-state)))
+              (when-let* ((property (cl-rest (assoc prop bluetooth--mode-state))))
                 (setf (bluetooth-property-active-p property) value))
               (when (string= "Discovering" prop)
                 (if value
@@ -461,7 +461,7 @@ The function will have DOCSTRING as its documentation."
 Calling this function will unpair device and host."
   (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
-  (when-let (device (bluetooth-device (or dev-id (tabulated-list-get-id))))
+  (when-let* ((device (bluetooth-device (or dev-id (tabulated-list-get-id)))))
     (message "Removing and unpairing %s"
              (bluetooth-device-property device "Alias"))
     (bluetooth-lib-dbus-method (bluetooth-device-property device "Adapter")
@@ -661,7 +661,7 @@ If enabled, the device info display follows the selected device entry."
 
 (defun bluetooth--ins-classes (props)
   "Insert device classes from properties alist PROPS."
-  (when-let (class (cl-rest (assoc "Class" props)))
+  (when-let* ((class (cl-rest (assoc "Class" props))))
     (let ((p-class (bluetooth-uuid-parse-class class)))
       (bluetooth--ins-heading "\nService and device classes\n")
       (--map (cl-destructuring-bind (type value) it
@@ -675,7 +675,7 @@ If enabled, the device info display follows the selected device entry."
 
 (defun bluetooth--ins-services (props)
   "Insert device services from properties alist PROPS."
-  (when-let (uuids (cl-rest (assoc "UUIDs" props)))
+  (when-let* ((uuids (cl-rest (assoc "UUIDs" props))))
     (bluetooth--ins-heading "\nServices (UUIDs)\n")
     (mapc (lambda (id-pair)
             (--zip-with (insert (format it other))
@@ -698,7 +698,7 @@ If enabled, the device info display follows the selected device entry."
 
 (defun bluetooth--ins-mfc-info (props)
   "Insert manufacturer information from properties alist PROPS."
-  (when-let (mf-info (cl-second (assoc "ManufacturerData" props)))
+  (when-let* ((mf-info (cl-second (assoc "ManufacturerData" props))))
     (bluetooth-ins-line "Manufacturer"
                         (or (bluetooth-uuid-manufacturer-from-id
                              (cl-first mf-info))
@@ -708,7 +708,7 @@ If enabled, the device info display follows the selected device entry."
   "Show detailed information on the device at point."
   (interactive nil bluetooth-mode)
   (bluetooth--barf-if-uninitialized)
-  (when-let (device (bluetooth-devatpt))
+  (when-let* ((device (bluetooth-devatpt)))
     (with-current-buffer-window bluetooth-info-buffer-name nil nil
       (let ((props (bluetooth-device-properties device)))
         (bluetooth--ins-heading "Bluetooth device info\n\n")
