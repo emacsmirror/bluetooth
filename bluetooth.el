@@ -494,8 +494,8 @@ Calling this function will unpair device and host."
 If enabled, the device info display follows the selected device entry."
   :group 'bluetooth :init-value nil :lighter " Fol"
   (if (not bluetooth-info-follow-mode)
-      (remove-hook 'post-command-hook 'bluetooth-info-follow-mode-hook t)
-    (add-hook 'post-command-hook 'bluetooth-info-follow-mode-hook nil t)
+      (remove-hook 'post-command-hook #'bluetooth-info-follow-mode-hook t)
+    (add-hook 'post-command-hook #'bluetooth-info-follow-mode-hook nil t)
     (make-local-variable 'bluetooth--follow-last-id)))
 
 (defun bluetooth-info-follow-mode-hook ()
@@ -626,7 +626,7 @@ If enabled, the device info display follows the selected device entry."
         tabulated-list-entries #'bluetooth--list-entries
         tabulated-list-padding 0
         tabulated-list-sort-key (cons "Alias" nil))
-  (add-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback
+  (add-hook 'tabulated-list-revert-hook #'bluetooth--update-with-callback
             nil 'local)
   (tabulated-list-init-header)
   (tabulated-list-print)
