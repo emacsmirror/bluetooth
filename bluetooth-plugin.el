@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;;
+;; This file contains the plugin API for bluetooth mode.
 
 ;;; Code:
 

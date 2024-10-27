@@ -140,9 +140,9 @@ DEVICE's property functions.  See ‘bluetooth-device-add-prop-hook’."
                                     value)
                               (when (or (string= "Connected" key)
                                         (string= "ServicesResolved" key))
-                                    (if value
-                                        (bluetooth-plugin-dev-update dev)
-                                      (bluetooth-plugin-dev-remove dev)))
+                                (if value
+                                    (bluetooth-plugin-dev-update dev)
+                                  (bluetooth-plugin-dev-remove dev)))
                               (bluetooth-device--call-prop-functions
                                device key value interface)))
                           changed-props)

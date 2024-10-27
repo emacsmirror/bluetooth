@@ -224,7 +224,7 @@ This function only uses the first adapter reported by Bluez."
 
 (defun bluetooth--barf-if-uninitialized ()
   (unless bluetooth--initialized
-	(user-error "Bluetooth is not initialized.  Try ‘bluetooth-list-devices’.")))
+    (user-error "Bluetooth is not initialized.  Try ‘bluetooth-list-devices’.")))
 
 (defun bluetooth--mode-info ()
   "Update the mode info display."
@@ -542,7 +542,7 @@ If enabled, the device info display follows the selected device entry."
                                      . (and (boundp 'bluetooth-info-follow-mode)
                                             bluetooth-info-follow-mode))
                             :help "Toggle device info follow mode"))
-    
+
 
     (define-key map [menu-bar bluetooth device]
                 (cons "Device" (make-sparse-keymap "Device")))
@@ -627,7 +627,7 @@ If enabled, the device info display follows the selected device entry."
         tabulated-list-padding 0
         tabulated-list-sort-key (cons "Alias" nil))
   (add-hook 'tabulated-list-revert-hook 'bluetooth--update-with-callback
-			nil 'local)
+            nil 'local)
   (tabulated-list-init-header)
   (tabulated-list-print)
   (hl-line-mode))
@@ -756,6 +756,8 @@ If enabled, the device info display follows the selected device entry."
     (error "The bluetooth service “%s” is not available" bluetooth-service))
   (add-hook 'dbus-event-error-functions #'bluetooth--show-error)
   (bluetooth-pa-register-agent)
+  ;; FIXME This is done here to avoid multiple plugin menu entries after
+  ;; re-initialisation.  Is there a better way?
   (transient-define-prefix bluetooth-menu ()
     "Bluetooth mode menu."
     ["Bluetooth menu\n"

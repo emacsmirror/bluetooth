@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;;
+;; A collection of functions and data to deal with Bluetooth UUIDs.
 
 ;;; Code:
 

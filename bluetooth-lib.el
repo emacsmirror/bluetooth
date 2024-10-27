@@ -21,7 +21,8 @@
 
 ;;; Commentary:
 
-;;
+;; This file collects utility functions for use in the bluetooth package or
+;; plugins.
 
 ;;; Code:
 

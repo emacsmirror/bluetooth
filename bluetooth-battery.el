@@ -64,6 +64,7 @@
   (and bluetooth-battery--loaded
        (cl-member (bluetooth-devatpt) bluetooth-battery--devices)))
 
+;; TODO This doesn't do much yet.  Any ideas for menu entries?
 (transient-define-prefix bluetooth-battery--menu ()
   "The Bluetooth battery plugin menu."
   ["Battery menu"
