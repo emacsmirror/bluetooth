@@ -10,7 +10,7 @@
 ;; Version: 0.4
 ;; Package-Requires: ((emacs "26.1") (dash "2.18.1") (compat "30.0.0.0") (transient "0.5.0"))
 ;; Keywords: hardware
-;; URL: https://gitlab.com/rstocker/emacs-bluetooth
+;; URL: https://codeberg.org/rstocker/emacs-bluetooth
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

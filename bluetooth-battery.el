@@ -4,6 +4,7 @@
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Keywords: hardware
+;; URL: https://codeberg.org/rstocker/emacs-bluetooth
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
