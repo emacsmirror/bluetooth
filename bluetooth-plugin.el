@@ -1,6 +1,6 @@
 ;;; bluetooth-plugin.el --- Plugin API for bluetooth mode  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Raffael Stocker
+;; Copyright (C) 2024 Free Software Foundation, Inc.
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Keywords: hardware
