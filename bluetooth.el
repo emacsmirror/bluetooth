@@ -1,4 +1,4 @@
-;;; bluetooth.el --- A Major mode for Bluetooth devices  -*- lexical-binding: t; -*-
+;;; bluetooth.el --- A mode for interacting with Bluetooth devices  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019-2024 Free Software Foundation, Inc.
 
