@@ -3,3 +3,7 @@
 \#*#
 *.elc
 TAGS
+
+# ELPA-generated files.
+/bluetooth-autoloads.el
+/bluetooth-pkg.el
