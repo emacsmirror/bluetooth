@@ -678,9 +678,10 @@ If enabled, the device info display follows the selected device entry."
   (when-let* ((uuids (cl-rest (assoc "UUIDs" props))))
     (bluetooth--ins-heading "\nServices (UUIDs)\n")
     (mapc (lambda (id-pair)
-            (--zip-with (insert (format it other))
-                        '("%36s  " "%s " "(%s)")
-                        (cl-second id-pair))
+            (cl-mapc (lambda (fmt pair)
+                       (insert (format fmt pair)))
+                     '("%36s  " "%s " "(%s)")
+                     (cl-second id-pair))
             (insert "\n"))
           (bluetooth-uuid-interpret uuids))))
 
