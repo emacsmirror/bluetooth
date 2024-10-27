@@ -25,8 +25,9 @@ Table of Contents
   • setting adapter properties (powered, discoverable, pairable)
   • showing device information (alias, address, RSSI, class, services)
   • Imenu integration
+  • a experimental plugin API to be used by other packages
   • a battery plugin that will show battery percentage and can issue a
-    low battery warning
+    low battery warning (and serves as a minimum example of a plugin)
 
   The implementation is based on the Bluez DBus interface (see
   <https://www.bluez.org>).
@@ -37,6 +38,9 @@ Table of Contents
 
   To install it, invoke `M-x package-install-file' on `bluetooth.el' and
   then use it with `M-x bluetooth-list-devices'.
+
+  To use functions of this package from other code, call
+  `bluetooth-init' from your Emacs init file.
 
   The mode assumes availability of Bluez on D-Bus.  Depending on the
   system configuration, Bluez may use the `:system' bus or the
@@ -73,7 +77,8 @@ Table of Contents
    >            go to the end of the list                                                                              
    g            revert the buffer; this queries the bus for accessible devices                                         
    S            sort list by column at point                                                                           
-   F            Toggle device information follow mode                                                                  
+   F            toggle device information follow mode                                                                  
+   M            bring up the mode's transient menu                                                                     
    h or ?       describe the mode                                                                                      
    q            bury the buffer                                                                                        
    `M-x imenu'  invoke imenu to select a device                                                                        
@@ -136,3 +141,4 @@ Table of Contents
   • made list view customizable
   • cleaned up the code and made it more useful to other
     packages/plugins
+  • a transient menu for main functions and plugins
