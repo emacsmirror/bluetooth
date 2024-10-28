@@ -7,7 +7,7 @@
 ;;
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 13 Aug 2019
-;; Version: 0.4
+;; Version: 0.4.1
 ;; Package-Requires: ((emacs "26.1") (dash "2.18.1") (compat "30.0.0.0") (transient "0.5.0"))
 ;; Keywords: hardware
 ;; URL: https://codeberg.org/rstocker/emacs-bluetooth
